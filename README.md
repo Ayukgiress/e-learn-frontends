@@ -1,37 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# E-Learning Platform Frontend 🚀
 
-## Getting Started
+## 🌟 Project Overview
+Advanced online learning platform with comprehensive features for students, instructors, and administrators.
 
-First, run the development server:
+## ✨ Key Features
 
+### 👥 User Roles
+- Admin, Instructor, Student, and Guest user management
+- Role-based access control
+- OAuth authentication (Google, GitHub)
+
+### 📚 Course Management
+- Flexible course creation
+- Multiple content formats
+- Module and lesson structures
+- Prerequisites and enrollment systems
+
+### 🎓 Learning Experience
+- Interactive student dashboard
+- Auto-graded quizzes
+- Real-time progress tracking
+- Completion certificates generation
+
+### 💳 Subscription Model
+- Stripe or visa cards
+- Flexible subscription plans
+- Monthly/annual/installment options
+
+## 🛠 Tech Stack
+- Next.js 14
+- React 18
+- TypeScript
+- Tailwind CSS
+- Stripe
+- OAuth providers
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+
+- npm
+
+### Installation
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/Ayukgiress/e-learning-frontend.git
+cd e-learning-frontend
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Development
+```bash
+npm run start
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🔐 Authentication Methods
+- Email/password registration
+- Google OAuth
+- Role-based access control
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🌐 Deployment Platforms
+- Vercel ⭐
 
-## Learn More
+## 🤝 Contributing
+1. Fork repository
+2. Create feature branch
+3. Commit changes
+4. Push to branch
+5. Create pull request
 
-To learn more about Next.js, take a look at the following resources:
+## 📄 License
+   MIT License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📞 Contact
+ `Davyken.github`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# e-learn-frontends
+## 🛡️ Security
+- JWT authentication
+- HTTPS by default
+- Role-based permissions
