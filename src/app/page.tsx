@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+
 import {
   BookOpen,
   Shield,
@@ -24,6 +25,7 @@ import {
   Database,
   Palette,
 } from "lucide-react";
+import FAQs from "@/FAQ/faq";
 
 export default function Home() {
   const features = [
@@ -375,7 +377,7 @@ export default function Home() {
                   href="#how-it-works"
                   className="inline-flex items-center px-6 py-4 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                 >
-                  How It Works
+                  How It Works 👇
                 </Link>
               </div>
               <div className="pb-10"></div>
@@ -388,6 +390,7 @@ export default function Home() {
           </div>
         </div>
       </div>
+      <div></div>
       {/* Stats Section */}
       <section className="py-12 bg-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -650,90 +653,124 @@ export default function Home() {
             Get Started For Free
             <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
-        </div>
-      </section>
 
-      {/* Contact Section */}
-      <section id="contact" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900">Get in touch</h2>
-              <p className="mt-4 text-lg text-gray-600">
-                Have questions about our platform? We're here to help. Contact
-                us for support or course inquiries.
-              </p>
-
-              <div className="mt-8 space-y-6">
-                <div className="flex items-center space-x-4">
-                  <MapPin className="h-6 w-6 text-blue-600" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Location</h3>
-                    <p className="text-gray-600">Rebase Code Camp, Yaounde</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <Mail className="h-6 w-6 text-blue-600" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Email</h3>
-                    <p className="text-gray-600">contact@adc-learn.com</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <MessageSquare className="h-6 w-6 text-blue-600" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Live Chat</h3>
-                    <p className="text-gray-600">Available 24/7</p>
-                  </div>
-                </div>
-              </div>
+          {/* Calendly Embed */}
+          <div className="mt-10">
+            <h3 className="text-2xl font-bold text-white mb-4">
+              Schedule a Meeting
+            </h3>
+            <div
+              className="calendly-inline-widget"
+              style={{ minWidth: "320px", height: "630px" }}
+            >
+              <iframe
+                src="https://calendly.com/davykennang552/a-d-c-learn"
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                title="Calendly Schedule"
+              />
             </div>
-
-            <form className="bg-white p-8 rounded-lg shadow-sm">
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Message
-                  </label>
-                  <textarea
-                    rows={4}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  Send Message
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       </section>
+      {/* Contact Section */}
+      <section id="contact" className="py-20 bg-white flex flex-col items-center">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-center">
+    <div className="w-full md:w-1/2">
+      <h2 className="text-3xl font-bold text-gray-900">Get in touch</h2>
+      <p className="mt-4 text-lg text-gray-600">
+        Have questions about our platform? We're here to help. Contact
+        us for support or course inquiries.
+      </p>
+
+      <div className="mt-8 space-y-6">
+        <div className="flex items-center space-x-4">
+          <MapPin className="h-6 w-6 text-blue-600" />
+          <div>
+            <h3 className="font-semibold text-gray-900">Location</h3>
+            <p className="text-gray-600">Rebase Code Camp, Yaounde</p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          <Mail className="h-6 w-6 text-blue-600" />
+          <div>
+            <h3 className="font-semibold text-gray-900">Email</h3>
+            <p className="text-gray-600">contact@adc-learn.com</p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          <MessageSquare className="h-6 w-6 text-blue-600" />
+          <div>
+            <h3 className="font-semibold text-gray-900">Live Chat</h3>
+            <p className="text-gray-600">Available 24/7</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form className="bg-white p-8 rounded-lg shadow-sm w-full md:w-1/2">
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Name</label>
+          <input
+            type="text"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Email</label>
+          <input
+            type="email"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Message</label>
+          <textarea
+            rows={4}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          Send Message
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {/* <div className="mt-12 text-center w-full">
+    <h2 className="text-2xl font-bold text-gray-900">Frequently Asked Questions</h2>
+    <div className="mt-6 space-y-4">
+      {[
+        { question: "What courses do you offer?", answer: "We offer a variety of courses in programming, web development, and data science." },
+        { question: "How do I enroll?", answer: "You can enroll directly through our website by selecting a course and completing the registration process." },
+        { question: "What payment methods are accepted?", answer: "We accept credit cards, PayPal, and bank transfers." },
+        { question: "Is there a refund policy?", answer: "Yes, we offer a full refund within the first 14 days of enrollment." },
+        { question: "Can I access the courses after completion?", answer: "Yes, you will have lifetime access to the course materials." },
+        { question: "Are there any prerequisites?", answer: "Some courses may have prerequisites, which will be listed on the course page." },
+        { question: "Do you offer certificates?", answer: "Yes, you will receive a certificate of completion after finishing a course." },
+        { question: "What if I have more questions?", answer: "Feel free to reach out to us through the contact form or live chat." },
+        { question: "Can I take courses at my own pace?", answer: "Yes, all courses are self-paced." },
+        { question: "Do you provide support during the course?", answer: "Yes, our instructors are available to assist you throughout the course." },
+      ].map((faq, index) => (
+        <div key={index} className="border p-4 rounded-md mx-auto w-full max-w-md">
+          <h3 className="font-semibold text-gray-800">{faq.question}</h3>
+          <p className="mt-2 text-gray-600">{faq.answer}</p>
+        </div>
+      ))}
+    </div>
+  </div> */}
+  <FAQs/>
+</section>
 
       {/* Footer */}
       <footer className="bg-gray-900">
