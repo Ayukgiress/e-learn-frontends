@@ -1,11 +1,88 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Mail, Lock } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
+import { useRouter } from 'next/navigation';  
+import axios, { AxiosError } from 'axios';
+import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
+import router from 'next/router';
 
-const Login = () => {
+interface LoginResponse {
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  message?: string;
+  success: boolean;
+  refreshToken?: string;
+  expiresIn?: number;  
+}
+
+interface LoginFormData {
+  email: string;
+  password: string;
+  rememberMe: boolean;
+}
+
+const Login: React.FC = () => {
+  const { login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState<LoginFormData>({
+    email: '',
+    password: '',
+    rememberMe: false,
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const { data } = await axios.post<LoginResponse>('/api/auth/login', {
+        email: formData.email,
+        password: formData.password
+      });
+
+      if (data.success) {
+        toast.success(data.message || 'Login successful');
+        login(data.token);
+        
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken);
+        }
+        
+        router.push('/dashboard');
+      } else {
+        throw new Error(data.message || 'Login failed');
+      }
+    } catch (err) {
+      const error = err as AxiosError<{ message?: string }>;
+      toast.error(error.response?.data?.message || 'Login failed');
+      console.error('Login failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-600 to-purple-500  flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-r from-blue-600 to-purple-500 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center text-black space-y-2 mb-8">
           <h1 className="text-4xl font-bold tracking-tight">Welcome Back!</h1>
@@ -14,12 +91,14 @@ const Login = () => {
 
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden">
           <div className="p-8">
-            <button className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 transition-all duration-200 shadow-sm group">
+            <button
+              type="button"
+              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 transition-all duration-200 shadow-sm group"
+            >
               <FcGoogle className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />
               <span>Continue with Google</span>
             </button>
 
-            {/* Divider */}
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200"></div>
@@ -29,11 +108,10 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Email Form */}
-            <form className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                     Email Address
                   </label>
                   <div className="relative rounded-lg shadow-sm">
@@ -41,7 +119,12 @@ const Login = () => {
                       <Mail className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
+                      id="email"
+                      name="email"
                       type="email"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
                       className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       placeholder="name@example.com"
                     />
@@ -49,7 +132,7 @@ const Login = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                     Password
                   </label>
                   <div className="relative rounded-lg shadow-sm">
@@ -57,7 +140,12 @@ const Login = () => {
                       <Lock className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
+                      id="password"
+                      name="password"
                       type="password"
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
                       className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       placeholder="Enter your password"
                     />
@@ -68,16 +156,19 @@ const Login = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <input
-                    id="remember-me"
+                    id="rememberMe"
+                    name="rememberMe"
                     type="checkbox"
+                    checked={formData.rememberMe}
+                    onChange={handleChange}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <label htmlFor="remember-me" className="ml-2 text-sm text-gray-600">
+                  <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-600">
                     Remember me
                   </label>
                 </div>
-                <Link 
-                  href="/forgot-password" 
+                <Link
+                  href="/forget-password"
                   className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors"
                 >
                   Forgot password?
@@ -86,19 +177,19 @@ const Login = () => {
 
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-[1.02]"
+                disabled={isLoading}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Sign in to your account
+                {isLoading ? 'Signing in...' : 'Sign in to your account'}
               </button>
             </form>
           </div>
 
-          {/* Footer */}
           <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link 
-                href="/auth" 
+              <Link
+                href="/auth"
                 className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
               >
                 Create one now
