@@ -6,8 +6,8 @@ import { Mail, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
-import { useAuth } from "../context/AuthContext";
-import SignInPage from "../pages/Oauth/page";
+import { useAuthStore } from "../store/useAuthStore";
+import GoogleLoginButton from "../Components/GoogleButton";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,14 +31,17 @@ interface LoginResponse {
 
 const validationSchema = z.object({
   email: z.string().email("Invalid email address").min(1, "Email is required"),
-  password: z.string().min(6, "Password must be at least 6 characters long").min(1, "Password is required"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters long")
+    .min(1, "Password is required"),
   rememberMe: z.boolean().optional(),
 });
 
 type FormData = z.infer<typeof validationSchema>;
 
 const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -52,7 +55,7 @@ const Login: React.FC = () => {
 
   const onSubmit = async (data: FormData): Promise<void> => {
     setIsLoading(true);
-  
+
     try {
       const response = await axios.post<LoginResponse>(
         "http://localhost:5000/auth/login",
@@ -61,42 +64,33 @@ const Login: React.FC = () => {
           password: data.password,
         }
       );
-  
-      // Check if we received a token
+
       if (response.data.token) {
-        // Store the token
-        login(response.data.token);
-  
-        // Store refresh token if provided
-        if (response.data.refreshToken) {
-          localStorage.setItem("refreshToken", response.data.refreshToken);
+        await login(response.data.token);
+        toast.success("Login successful");
+
+        // Route based on user role from store
+        const { isAdmin, isStudent, isInstructor } = useAuthStore.getState();
+        
+        if (isAdmin) {
+          router.push("/admin/dashboard");
+        } else if (isStudent) {
+          router.push("/student/dashboard");
+        } else if (isInstructor) {
+          router.push("/instructor/dashboard");
+        } else {
+          router.push("/dashboard");
         }
-  
-        // Show success message
-        toast.success(response.data.message || "Login successful");
-  
-        // Redirect to dashboard
-        router.push("/dashboard");
       } else {
-        // If no token was received, treat it as an error
         throw new Error("No authentication token received");
       }
     } catch (err) {
       const error = err as AxiosError<{ message?: string }>;
-      
-      // Get the error message from the response if available, otherwise use a default message
-      const errorMessage = error.response?.data?.message 
-        || error.message 
-        || "Unable to login. Please check your credentials and try again.";
-      
-      // Log error for debugging
-      console.error("Login error details:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: errorMessage
-      });
-      
-      // Show error message to user
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Unable to login. Please check your credentials and try again.";
+      console.error("Login error:", errorMessage);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -108,26 +102,32 @@ const Login: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center text-black space-y-2 mb-8">
           <h1 className="text-4xl font-bold tracking-tight">Welcome Back!</h1>
-          <p className="text-black text-lg">Sign in to continue to your account</p>
+          <p className="text-black text-lg">
+            Sign in to continue to your account
+          </p>
         </div>
-
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           <div className="p-8">
-            <SignInPage />
+            <GoogleLoginButton />
 
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500">or sign in with email</span>
+                <span className="px-4 bg-white text-gray-500">
+                  or sign in with email
+                </span>
               </div>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     Email Address
                   </label>
                   <div className="relative rounded-lg shadow-sm">
@@ -141,12 +141,19 @@ const Login: React.FC = () => {
                       className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       {...register("email")}
                     />
-                    {errors.email && <span className="text-red-500 text-sm">{errors.email.message}</span>}
+                    {errors.email && (
+                      <span className="text-red-500 text-sm">
+                        {errors.email.message}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     Password
                   </label>
                   <div className="relative rounded-lg shadow-sm">
@@ -160,7 +167,11 @@ const Login: React.FC = () => {
                       className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       {...register("password")}
                     />
-                    {errors.password && <span className="text-red-500 text-sm">{errors.password.message}</span>}
+                    {errors.password && (
+                      <span className="text-red-500 text-sm">
+                        {errors.password.message}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -173,7 +184,12 @@ const Login: React.FC = () => {
                     {...register("rememberMe")}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-600">Remember me</label>
+                  <label
+                    htmlFor="rememberMe"
+                    className="ml-2 text-sm text-gray-600"
+                  >
+                    Remember me
+                  </label>
                 </div>
                 <Link
                   href="/forget-password"

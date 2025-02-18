@@ -5,10 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User, Lock, Mail, ChevronDown, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
-import SignInPage from "../pages/Oauth/page";
-
-// React Hook Form and Zod
 import { useForm } from "react-hook-form";
+import GoogleLoginButton from "../Components/GoogleButton";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
@@ -16,7 +14,6 @@ interface AuthResponse {
   token: string;
 }
 
-// Define the Zod schema
 const validationSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -25,14 +22,12 @@ const validationSchema = z.object({
   role: z.string().min(1, "Please select a role"),
 });
 
-// Infer the type from the Zod schema
 type FormData = z.infer<typeof validationSchema>;
 
 const Registration = () => {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  // Using React Hook Form with Zod
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(validationSchema),
   });
@@ -57,7 +52,20 @@ const Registration = () => {
       const authResponse: AuthResponse = await response.json();
       toast.success("Registration successful");
       localStorage.setItem("token", authResponse.token);
-      router.push("/dashboard");
+
+      switch (data.role) {
+        case "admin":
+          router.push("/admin/dashboard");
+          break;
+        case "student":
+          router.push("/student/dashboard");
+          break;
+        case "instructor":
+          router.push("/instructor/dashboard");
+          break;
+        default:
+          router.push("/dashboard");
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Registration failed";
@@ -74,7 +82,7 @@ const Registration = () => {
             Create your account
           </h2>
 
-          <SignInPage />
+          <GoogleLoginButton/>
 
           <div className="relative mb-8">
             <div className="absolute inset-0 flex items-center">
