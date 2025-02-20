@@ -1,67 +1,89 @@
-'use client';
+"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // Changed from next/router
+import { useRouter } from "next/navigation";
 import { User, Lock, Mail, ChevronDown, GraduationCap } from "lucide-react";
-import { FcGoogle } from "react-icons/fc";
-import axios from "axios";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { GoogleButton } from "../Components/GoogleButton";
+import { registerUser } from "../action/auth";
+import { PROTECTED_ROUTES } from "../constant/route";
+
+const validationSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address").min(1, "Email is required"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters long")
+    .min(1, "Password is required"),
+  role: z.string().min(1, "Please select a role"),
+});
+
+type FormData = z.infer<typeof validationSchema>;
 
 const Registration = () => {
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    role: ""
-  });
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(validationSchema),
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitForm = async (data: FormData) => {
     setError("");
 
-    const { firstName, lastName, email, password, role } = formData;
+    const formData = new FormData();
+    formData.append("firstName", data.firstName);
+    formData.append("lastName", data.lastName);
+    formData.append("email", data.email);
+    formData.append("password", data.password);
+    formData.append("role", data.role);
 
-    if (!firstName || !lastName || !email || !password || !role) {
-      setError("Please fill in all fields.");
-      return;
-    }
+    const result = await registerUser(formData);
 
-    try {
-      const response = await axios.post("/api/auth/register", formData);
-      const { token } = response.data;
+    if (result.success) {
       toast.success("Registration successful");
-      localStorage.setItem("token", token);
-      router.push("/dashboard");
-    } catch (error) {
-      toast.error("Registration failed");
-      console.error("Registration failed", error);
-      setError("Registration failed, please try again");
+      localStorage.setItem("token", result.data.token);
+
+      // Handle navigation based on role
+      const userRole = data.role.toLowerCase();
+      switch (userRole) {
+        case "student":
+          router.push(PROTECTED_ROUTES.STUDENT);
+          break;
+        case "instructor":
+          router.push(PROTECTED_ROUTES.INSTRUCTOR);
+          break;
+        case "admin":
+          router.push(PROTECTED_ROUTES.MANAGEMENT);
+          break;
+        default:
+          toast.error("Invalid role selected");
+          setError("Invalid role selected");
+      }
+    } else {
+      toast.error(result.error);
+      setError(result.error || "");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-600 to-purple-500 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-r from-blue-600 to-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto bg-white rounded-xl shadow-xl overflow-hidden md:mt-16">
         <div className="px-8 pt-8 pb-6">
           <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900 mb-8">
             Create your account
           </h2>
-          <button className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-black hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors gap-3">
-            <FcGoogle className="h-5 w-5" />
-            Continue with Google
-          </button>
+
+          <GoogleButton />
 
           <div className="relative mb-8">
             <div className="absolute inset-0 flex items-center">
@@ -74,7 +96,7 @@ const Registration = () => {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(handleSubmitForm)} className="space-y-6">
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
@@ -87,12 +109,15 @@ const Registration = () => {
                   </div>
                   <input
                     type="text"
-                    name="firstName"
+                    {...register("firstName")}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Ayuk"
-                    value={formData.firstName}
-                    onChange={handleChange}
                   />
+                  {errors.firstName && (
+                    <span className="text-red-500 text-sm">
+                      {errors.firstName.message}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -106,12 +131,15 @@ const Registration = () => {
                   </div>
                   <input
                     type="text"
-                    name="lastName"
+                    {...register("lastName")}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Giress"
-                    value={formData.lastName}
-                    onChange={handleChange}
                   />
+                  {errors.lastName && (
+                    <span className="text-red-500 text-sm">
+                      {errors.lastName.message}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -126,12 +154,15 @@ const Registration = () => {
                 </div>
                 <input
                   type="email"
-                  name="email"
+                  {...register("email")}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="you@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
                 />
+                {errors.email && (
+                  <span className="text-red-500 text-sm">
+                    {errors.email.message}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -145,12 +176,15 @@ const Registration = () => {
                 </div>
                 <input
                   type="password"
-                  name="password"
+                  {...register("password")}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
                 />
+                {errors.password && (
+                  <span className="text-red-500 text-sm">
+                    {errors.password.message}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -163,15 +197,18 @@ const Registration = () => {
                   <GraduationCap className="h-5 w-5 text-gray-400" />
                 </div>
                 <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
+                  {...register("role")}
                   className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
                 >
                   <option value="">Select your role</option>
                   <option value="Student">Student</option>
                   <option value="Instructor">Instructor</option>
                 </select>
+                {errors.role && (
+                  <span className="text-red-500 text-sm">
+                    {errors.role.message}
+                  </span>
+                )}
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                   <ChevronDown className="h-5 w-5 text-gray-400" />
                 </div>
@@ -195,6 +232,14 @@ const Registration = () => {
               className="font-medium text-blue-600 hover:text-blue-500"
             >
               Sign in
+            </Link>
+          </p>
+          <p className="text-sm text-gray-600 mt-2">
+            <Link
+              href="/"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
+              Return to Homepage
             </Link>
           </p>
         </div>

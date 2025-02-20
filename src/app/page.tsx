@@ -13,6 +13,7 @@ import {
   MessageSquare,
   MapPin
 } from 'lucide-react';
+// import TermsOfService from './Components/terms/term';
 
 export default function Home() {
   const features = [
@@ -291,6 +292,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      
 
       {/* Footer */}
       <footer className="bg-gray-900">
@@ -313,7 +315,7 @@ export default function Home() {
                   <Link href="#features" className="text-gray-300 hover:text-white">Features</Link>
                 </li>
                 <li>
-                  <Link href="#pricing" className="text-gray-300 hover:text-white">Pricing</Link>
+                  <Link href="/pricing" className="text-gray-300 hover:text-white">Pricing</Link>
                 </li>
                 <li>
                   <Link href="#security" className="text-gray-300 hover:text-white">Security</Link>
