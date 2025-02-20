@@ -4,30 +4,14 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Mail, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
-import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
 import { useAuthStore } from "../store/useAuthStore";
-import GoogleLoginButton from "../Components/GoogleButton";
+import { GoogleButton } from "../Components/GoogleButton";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-
-interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    createdAt: string;
-    updatedAt: string;
-  };
-  message?: string;
-  success?: boolean;
-  refreshToken?: string;
-  expiresIn?: number;
-}
+import { PROTECTED_ROUTES } from "../constant/route";
+import { loginUser } from "../action/login"; // Import the server action
 
 const validationSchema = z.object({
   email: z.string().email("Invalid email address").min(1, "Email is required"),
@@ -56,45 +40,36 @@ const Login: React.FC = () => {
   const onSubmit = async (data: FormData): Promise<void> => {
     setIsLoading(true);
 
-    try {
-      const response = await axios.post<LoginResponse>(
-        "http://localhost:5000/auth/login",
-        {
-          email: data.email,
-          password: data.password,
-        }
-      );
+    const formData = new FormData();
+    formData.append("email", data.email);
+    formData.append("password", data.password);
 
-      if (response.data.token) {
-        await login(response.data.token);
-        toast.success("Login successful");
+    const result = await loginUser(formData);
 
-        // Route based on user role from store
-        const { isAdmin, isStudent, isInstructor } = useAuthStore.getState();
-        
-        if (isAdmin) {
-          router.push("/admin/dashboard");
-        } else if (isStudent) {
-          router.push("/student/dashboard");
-        } else if (isInstructor) {
-          router.push("/instructor/dashboard");
-        } else {
-          router.push("/dashboard");
-        }
-      } else {
-        throw new Error("No authentication token received");
+    if (result.success) {
+      await login(result.user.token); // Update the auth store
+      toast.success("Login successful");
+
+      // Route based on user role
+      const userRole = result.user.role.toLowerCase();
+      switch (userRole) {
+        case "student":
+          router.push(PROTECTED_ROUTES.STUDENT);
+          break;
+        case "instructor":
+          router.push(PROTECTED_ROUTES.INSTRUCTOR);
+          break;
+        case "admin":
+          router.push(PROTECTED_ROUTES.MANAGEMENT);
+          break;
+        default:
+          toast.error("Unauthorized access");
       }
-    } catch (err) {
-      const error = err as AxiosError<{ message?: string }>;
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Unable to login. Please check your credentials and try again.";
-      console.error("Login error:", errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
+    } else {
+      toast.error(result.error || "Login failed");
     }
+
+    setIsLoading(false);
   };
 
   return (
@@ -108,7 +83,7 @@ const Login: React.FC = () => {
         </div>
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           <div className="p-8">
-            <GoogleLoginButton />
+            <GoogleButton />
 
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">

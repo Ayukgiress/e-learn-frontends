@@ -6,19 +6,20 @@ import { useRouter } from "next/navigation";
 import { User, Lock, Mail, ChevronDown, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
-import GoogleLoginButton from "../Components/GoogleButton";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-
-interface AuthResponse {
-  token: string;
-}
+import { GoogleButton } from "../Components/GoogleButton";
+import { registerUser } from "../action/auth";
+import { PROTECTED_ROUTES } from "../constant/route";
 
 const validationSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address").min(1, "Email is required"),
-  password: z.string().min(6, "Password must be at least 6 characters long").min(1, "Password is required"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters long")
+    .min(1, "Password is required"),
   role: z.string().min(1, "Please select a role"),
 });
 
@@ -28,49 +29,49 @@ const Registration = () => {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
     resolver: zodResolver(validationSchema),
   });
 
   const handleSubmitForm = async (data: FormData) => {
     setError("");
 
-    try {
-      const response = await fetch("http://localhost:5000/auth/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+    const formData = new FormData();
+    formData.append("firstName", data.firstName);
+    formData.append("lastName", data.lastName);
+    formData.append("email", data.email);
+    formData.append("password", data.password);
+    formData.append("role", data.role);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Registration failed");
-      }
+    const result = await registerUser(formData);
 
-      const authResponse: AuthResponse = await response.json();
+    if (result.success) {
       toast.success("Registration successful");
-      localStorage.setItem("token", authResponse.token);
+      localStorage.setItem("token", result.data.token);
 
-      switch (data.role) {
-        case "admin":
-          router.push("/admin/dashboard");
-          break;
+      // Handle navigation based on role
+      const userRole = data.role.toLowerCase();
+      switch (userRole) {
         case "student":
-          router.push("/student/dashboard");
+          router.push(PROTECTED_ROUTES.STUDENT);
           break;
         case "instructor":
-          router.push("/instructor/dashboard");
+          router.push(PROTECTED_ROUTES.INSTRUCTOR);
+          break;
+        case "admin":
+          router.push(PROTECTED_ROUTES.MANAGEMENT);
           break;
         default:
-          router.push("/dashboard");
+          toast.error("Invalid role selected");
+          setError("Invalid role selected");
       }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Registration failed";
-      toast.error(errorMessage);
-      setError(errorMessage);
+    } else {
+      toast.error(result.error);
+      setError(result.error || "");
     }
   };
 
@@ -82,7 +83,7 @@ const Registration = () => {
             Create your account
           </h2>
 
-          <GoogleLoginButton/>
+          <GoogleButton />
 
           <div className="relative mb-8">
             <div className="absolute inset-0 flex items-center">
@@ -112,7 +113,11 @@ const Registration = () => {
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Ayuk"
                   />
-                  {errors.firstName && <span className="text-red-500 text-sm">{errors.firstName.message}</span>}
+                  {errors.firstName && (
+                    <span className="text-red-500 text-sm">
+                      {errors.firstName.message}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -130,7 +135,11 @@ const Registration = () => {
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Giress"
                   />
-                  {errors.lastName && <span className="text-red-500 text-sm">{errors.lastName.message}</span>}
+                  {errors.lastName && (
+                    <span className="text-red-500 text-sm">
+                      {errors.lastName.message}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -149,7 +158,11 @@ const Registration = () => {
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="you@example.com"
                 />
-                {errors.email && <span className="text-red-500 text-sm">{errors.email.message}</span>}
+                {errors.email && (
+                  <span className="text-red-500 text-sm">
+                    {errors.email.message}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -167,7 +180,11 @@ const Registration = () => {
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="••••••••"
                 />
-                {errors.password && <span className="text-red-500 text-sm">{errors.password.message}</span>}
+                {errors.password && (
+                  <span className="text-red-500 text-sm">
+                    {errors.password.message}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -187,7 +204,11 @@ const Registration = () => {
                   <option value="Student">Student</option>
                   <option value="Instructor">Instructor</option>
                 </select>
-                {errors.role && <span className="text-red-500 text-sm">{errors.role.message}</span>}
+                {errors.role && (
+                  <span className="text-red-500 text-sm">
+                    {errors.role.message}
+                  </span>
+                )}
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                   <ChevronDown className="h-5 w-5 text-gray-400" />
                 </div>
