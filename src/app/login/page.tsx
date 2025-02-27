@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Mail, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
+import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
 import { useAuthStore } from "../store/useAuthStore";
 import { GoogleButton } from "../Components/GoogleButton";
@@ -11,7 +12,33 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { PROTECTED_ROUTES } from "../constant/route";
-import { loginUser } from "../action/login"; // Import the server action
+
+interface LoginResponse {
+  token: string;
+  user?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  message?: string;
+  success?: boolean;
+  refreshToken?: string;
+  expiresIn?: number;
+}
+
+interface UserResponse {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const validationSchema = z.object({
   email: z.string().email("Invalid email address").min(1, "Email is required"),
@@ -37,43 +64,88 @@ const Login: React.FC = () => {
     resolver: zodResolver(validationSchema),
   });
 
+  const fetchUserData = async (token: string): Promise<UserResponse> => {
+    try {
+      const response = await axios.get<UserResponse>(
+        "http://localhost:5000/auth/me",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error("Failed to fetch user data");
+    }
+  };
+
   const onSubmit = async (data: FormData): Promise<void> => {
     setIsLoading(true);
-
-    const formData = new FormData();
-    formData.append("email", data.email);
-    formData.append("password", data.password);
-
-    const result = await loginUser(formData);
-
-    if (result.success) {
-      await login(result.user.token); // Update the auth store
-      toast.success("Login successful");
-
-      // Route based on user role
-      const userRole = result.user.role.toLowerCase();
-      switch (userRole) {
-        case "student":
-          router.push(PROTECTED_ROUTES.STUDENT);
-          break;
-        case "instructor":
-          router.push(PROTECTED_ROUTES.INSTRUCTOR);
-          break;
-        case "admin":
-          router.push(PROTECTED_ROUTES.MANAGEMENT);
-          break;
-        default:
-          toast.error("Unauthorized access");
+  
+    try {
+      // Step 1: Login and get token
+      const response = await axios.post<LoginResponse>(
+        "http://localhost:5000/auth/login",
+        {
+          email: data.email,
+          password: data.password,
+        }
+      );
+  
+      if (response.data.token) {
+        await login(response.data.token);
+        
+        let userData;
+        
+        if (response.data.user) {
+          userData = response.data.user;
+        } else {
+          userData = await fetchUserData(response.data.token);
+        }
+        
+        useAuthStore.setState({ 
+          user: userData,
+          isAdmin: userData.role === "admin",
+          isStudent: userData.role === "student",
+          isInstructor: userData.role === "instructor",
+        });
+  
+        // Step 5: Redirect based on role
+        switch (userData.role.toLowerCase()) {
+          case 'admin':
+            router.push(PROTECTED_ROUTES.MANAGEMENT);
+            break;
+          case 'student':
+            router.push(PROTECTED_ROUTES.STUDENT);
+            break;
+          case 'instructor':
+            router.push(PROTECTED_ROUTES.INSTRUCTOR);
+            break;
+          default:
+            console.log("No specific role matched, redirecting to default dashboard.");
+            router.push("/dashboard"); 
+        }
+        
+        toast.success("Login successful");
+      } else {
+        throw new Error("No authentication token received");
       }
-    } else {
-      toast.error(result.error || "Login failed");
+    } catch (err) {
+      const error = err as AxiosError<{ message?: string }>;
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Unable to login. Please check your credentials and try again.";
+      console.error("Login error:", errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-600 to-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-r from-blue-500 to-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center text-black space-y-2 mb-8">
           <h1 className="text-4xl font-bold tracking-tight">Welcome Back!</h1>

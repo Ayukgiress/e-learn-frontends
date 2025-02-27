@@ -1,4 +1,3 @@
-// GoogleButton.tsx
 import React, { useEffect, useCallback, useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useRouter } from 'next/navigation';
@@ -49,7 +48,6 @@ export const GoogleButton = ({
         }),
         credentials: 'include',
       });
-
       if (!result.ok) {
         let errorMessage = 'Authentication failed';
         try {
@@ -131,7 +129,8 @@ export const GoogleButton = ({
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: handleGoogleLogin,
-        ux_mode: 'popup',
+        // Change from popup to redirect
+        ux_mode: 'redirect',
         auto_select: false,
         context: 'signin'
       });

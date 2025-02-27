@@ -41,6 +41,36 @@ export async function registerUser(formData: FormData) {
     }
 
     const data = await response.json();
+    
+    return { 
+      success: true,
+      verificationRequired: true, 
+      email: validatedFields.data.email,
+      data 
+    };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Registration failed" 
+    };
+  }
+}
+
+export async function verifyEmail(token: string) {
+  try {
+    const response = await fetch(`http://localhost:5000/auth/verify-email/${token}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Email verification failed");
+    }
+
+    const data = await response.json();
     return { 
       success: true, 
       data 
@@ -48,7 +78,33 @@ export async function registerUser(formData: FormData) {
   } catch (error) {
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : "Registration failed" 
+      error: error instanceof Error ? error.message : "Email verification failed" 
+    };
+  }
+}
+
+export async function resendVerificationEmail(email: string) {
+  try {
+    const response = await fetch(`http://localhost:5000/auth/resend-verification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to resend verification email");
+    }
+
+    return { 
+      success: true 
+    };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Failed to resend verification email" 
     };
   }
 }

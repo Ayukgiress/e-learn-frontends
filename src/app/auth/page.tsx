@@ -3,14 +3,15 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, Lock, Mail, ChevronDown, GraduationCap } from "lucide-react";
+import { User, Lock, Mail, ChevronDown, GraduationCap, Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { GoogleButton } from "../Components/GoogleButton";
-import { registerUser } from "../action/auth";
+import { registerUser, resendVerificationEmail } from "../action/auth";
 import { PROTECTED_ROUTES } from "../constant/route";
+import { useAuthStore } from "../store/useAuthStore";
 
 const validationSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -27,6 +28,9 @@ type FormData = z.infer<typeof validationSchema>;
 
 const Registration = () => {
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
   const router = useRouter();
 
   const {
@@ -39,44 +43,125 @@ const Registration = () => {
 
   const handleSubmitForm = async (data: FormData) => {
     setError("");
-
+    setIsLoading(true);
+  
     const formData = new FormData();
     formData.append("firstName", data.firstName);
     formData.append("lastName", data.lastName);
     formData.append("email", data.email);
     formData.append("password", data.password);
     formData.append("role", data.role);
-
-    const result = await registerUser(formData);
-
-    if (result.success) {
-      toast.success("Registration successful");
-      localStorage.setItem("token", result.data.token);
-
-      // Handle navigation based on role
-      const userRole = data.role.toLowerCase();
-      switch (userRole) {
-        case "student":
-          router.push(PROTECTED_ROUTES.STUDENT);
-          break;
-        case "instructor":
-          router.push(PROTECTED_ROUTES.INSTRUCTOR);
-          break;
-        case "admin":
-          router.push(PROTECTED_ROUTES.MANAGEMENT);
-          break;
-        default:
-          toast.error("Invalid role selected");
-          setError("Invalid role selected");
+  
+    try {
+      const result = await registerUser(formData);
+    
+      if (result.success) {
+        if (result.verificationRequired) {
+          // Handle verification required case
+          setVerificationSent(true);
+          setVerificationEmail(data.email);
+          toast.success("Registration successful! Please check your email to verify your account.");
+        } else {
+          // Direct login if verification not required 
+          toast.success("Registration successful");
+          const login = useAuthStore.getState().login;
+          
+          try {
+            await login(result.data.token);
+            
+            // Navigate based on role
+            const userRole = data.role.toLowerCase();
+            switch (userRole) {
+              case "student":
+                router.push(PROTECTED_ROUTES.STUDENT);
+                break;
+              case "instructor":
+                router.push(PROTECTED_ROUTES.INSTRUCTOR);
+                break;
+              case "admin":
+                router.push(PROTECTED_ROUTES.MANAGEMENT);
+                break;
+              default:
+                router.push('/login');
+            }
+          } catch (error) {
+            toast.error("Authentication failed after registration");
+            setError("Authentication failed");
+          }
+        }
+      } else {
+        toast.error(result.error);
+        setError(result.error || "");
       }
-    } else {
-      toast.error(result.error);
-      setError(result.error || "");
+    } catch (err) {
+      toast.error("An unexpected error occurred");
+      setError("An unexpected error occurred. Please try again later.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const handleResendVerification = async () => {
+    if (!verificationEmail) return;
+    
+    setIsLoading(true);
+    const result = await resendVerificationEmail(verificationEmail);
+    setIsLoading(false);
+    
+    if (result.success) {
+      toast.success("Verification email resent. Please check your inbox.");
+    } else {
+      toast.error(result.error || "Failed to resend verification email");
+    }
+  };
+
+  if (verificationSent) {
+    return (
+      <div className="min-h-screen bg-gradient-to-r from-blue-400 to-white py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md mx-auto bg-white rounded-xl shadow-xl overflow-hidden md:mt-16">
+          <div className="px-8 py-12 text-center">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Check your email</h2>
+            <p className="text-gray-600 mb-8">
+              We sent a verification link to <span className="font-medium">{verificationEmail}</span>. 
+              Please check your inbox and click the link to activate your account.
+            </p>
+            
+            <p className="text-sm text-gray-500 mb-6">
+              Didn't receive the email? Check your spam folder or click below to resend.
+            </p>
+            
+            <button
+              onClick={handleResendVerification}
+              disabled={isLoading}
+              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-80 focus:ring-offset-2 transition-colors"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                  Sending...
+                </>
+              ) : (
+                "Resend Verification Email"
+              )}
+            </button>
+            
+            <div className="mt-6">
+              <Link
+                href="/login"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
+                Return to Login
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-600 to-white py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-r from-blue-500 to-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto bg-white rounded-xl shadow-xl overflow-hidden md:mt-16">
         <div className="px-8 pt-8 pb-6">
           <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900 mb-8">
@@ -217,9 +302,17 @@ const Registration = () => {
 
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-80 focus:ring-offset-2 transition-colors"
+              disabled={isLoading}
+              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-80 focus:ring-offset-2 transition-colors"
             >
-              Create Account
+              {isLoading ? (
+                <>
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                  Creating Account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </button>
           </form>
         </div>

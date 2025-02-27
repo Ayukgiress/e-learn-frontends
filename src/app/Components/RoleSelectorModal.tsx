@@ -44,16 +44,16 @@ const RoleSelectionModal = ({
           ))}
         </div>
         
-        <button
-          onClick={onClose}
-          disabled={isLoading}
-          className="mt-6 w-full py-2 text-gray-600 hover:text-gray-800 
-                     transition-colors duration-200 text-sm font-medium"
-        >
-          Cancel
-        </button>
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className="mt-6 w-full py-2 text-gray-600 hover:text-gray-800 
+                       transition-colors duration-200 text-sm font-medium"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
-    </div>
   );
 };
 
