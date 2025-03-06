@@ -1,109 +1,151 @@
-"use server";
+'use server';
 
 import { z } from "zod";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
-// Enhanced validation schema
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Invalid email address")
-    .toLowerCase()
-    .trim(),
-  password: z
-    .string()
-    .min(1, "Password is required")
-    .min(6, "Password must be at least 6 characters"),
-  rememberMe: z.boolean().optional(),
+const validationSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address").min(1, "Email is required"),
+  password: z.string().min(6, "Password must be at least 6 characters long").min(1, "Password is required"),
+  role: z.string().min(1, "Please select a role"),
 });
 
-interface LoginResponse {
-  success: boolean;
-  user?: {
-    token: string;
-    role: string;
-    expiresIn?: number;
-  };
-  error?: string;
-}
+export async function registerUser(formData: FormData) {
+  // Validate form data with Zod schema
+  const validatedFields = validationSchema.safeParse({
+    firstName: formData.get('firstName'),
+    lastName: formData.get('lastName'),
+    email: formData.get('email'),
+    password: formData.get('password'),
+    role: formData.get('role'),
+  });
 
-export async function loginUser(formData: { email: string, password: string, rememberMe?: boolean }): Promise<LoginResponse> {
+  if (!validatedFields.success) {
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
+    const errorMessage = Object.values(fieldErrors)
+      .flat()
+      .join(', ');
+    
+    return { 
+      success: false, 
+      error: errorMessage || "Invalid form data" 
+    };
+  }
+
   try {
-    // Validate input
-    const validatedFields = loginSchema.safeParse(formData);
-
-    if (!validatedFields.success) {
-      return {
-        success: false,
-        error: validatedFields.error.errors[0]?.message || "Invalid input data",
-      };
-    }
-
-    const { email, password, rememberMe } = validatedFields.data;
-
-    // API call
-    const response = await fetch("http://localhost:5000/auth/login", {
+    // First, check if email already exists to provide immediate feedback
+    const checkEmailResponse = await fetch("http://localhost:5000/auth/check-email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email, password, rememberMe }),
-      cache: "no-store",
+      body: JSON.stringify({ email: validatedFields.data.email }),
+    });
+
+    if (!checkEmailResponse.ok) {
+      const errorData = await checkEmailResponse.json();
+      if (errorData.code === "EMAIL_EXISTS") {
+        return { 
+          success: false, 
+          error: "This email is already registered. Please use a different email or try logging in." 
+        };
+      }
+    }
+
+    // Proceed with registration
+    const response = await fetch("http://localhost:5000/auth/signup", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(validatedFields.data),
+      // Increase timeout for potentially slow verification processes
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-
-      // Handle specific error cases
-      if (response.status === 401) {
-        return { success: false, error: "Invalid credentials" };
-      }
-      if (response.status === 429) {
-        return { success: false, error: "Too many attempts. Please try again later." };
-      }
-
-      return {
-        success: false,
-        error: errorData.message || `Login failed with status ${response.status}`,
-      };
+      throw new Error(errorData.message || "Registration failed");
     }
 
     const data = await response.json();
-
-    // Validate response data
-    if (!data.token || !data.user?.role) {
-      console.error("Invalid server response:", data);
-      return { success: false, error: "Invalid server response" };
+    
+    // Check if verification email was sent
+    if (data.verificationRequired) {
+      return { 
+        success: true,
+        verificationRequired: true,
+        email: validatedFields.data.email,
+        data 
+      };
     }
+    
+    // Return normal success with token if no verification required
+    return { 
+      success: true, 
+      data 
+    };
+  } catch (error) {
+    console.error("Registration error:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Registration failed. Please try again later." 
+    };
+  }
+}
 
-    // Set cookie with appropriate options
-    const cookieStore = cookies();
-    const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60; // 30 days : 24 hours
-
-    cookieStore.set("token", data.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge,
-      path: "/",
+// Add a verification function for the verification process
+export async function verifyEmail(token: string) {
+  try {
+    const response = await fetch(`http://localhost:5000/auth/verify-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token }),
     });
 
-    return {
-      success: true,
-      user: {
-        token: data.token,
-        role: data.user.role,
-        expiresIn: maxAge,
-      },
-    };
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Email verification failed");
+    }
 
+    const data = await response.json();
+    return { 
+      success: true, 
+      data 
+    };
   } catch (error) {
-    console.error("Login error:", error);
-    return {
-      success: false,
-      error: "An unexpected error occurred. Please try again.",
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Email verification failed" 
+    };
+  }
+}
+
+// Add a function to resend verification email
+export async function resendVerificationEmail(email: string) {
+  try {
+    const response = await fetch(`http://localhost:5000/auth/resend-verification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to resend verification email");
+    }
+
+    return { 
+      success: true
+    };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Failed to resend verification email" 
     };
   }
 }

@@ -11,7 +11,7 @@ interface UserData {
   role: string;
   createdAt: string;
   updatedAt: string;
-  exp?: number; // Adding optional expiration field
+  exp?: number; 
 }
 
 interface AuthStore {

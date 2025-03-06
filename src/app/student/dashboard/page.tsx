@@ -6,7 +6,7 @@ import RoleGuard from '../../Components/RoleGaurd'
 
 function dashboard () {
   return (
-    <RoleGuard role="instructor">
+    <RoleGuard role="student">
 
     <div>
       <h1>Student Dashboard</h1>

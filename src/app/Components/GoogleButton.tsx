@@ -129,7 +129,6 @@ export const GoogleButton = ({
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: handleGoogleLogin,
-        // Change from popup to redirect
         ux_mode: 'redirect',
         auto_select: false,
         context: 'signin'
