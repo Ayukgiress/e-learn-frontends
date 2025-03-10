@@ -3,7 +3,9 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useRouter } from 'next/navigation';
 import RoleSelectionModal from '../Components/RoleSelectorModal';
 import { toast } from 'sonner';
-import { PROTECTED_ROUTES } from '../constant/route';
+import { API_BASE_URL, PROTECTED_ROUTES } from '../constant/route';
+// import { Import } from 'lucide-react';
+import { useGoogleLogin } from '../hooks/useAuth';
 
 declare global {
   interface Window {
@@ -17,7 +19,7 @@ interface GoogleButtonProps {
   debug?: boolean;
 }
 
-export const GoogleButton = ({ 
+export const GoogleButton = ({
   className = '',
   onError,
   debug = false
@@ -28,39 +30,21 @@ export const GoogleButton = ({
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [googleResponse, setGoogleResponse] = useState<any>(null);
 
+  const { mutateAsync: googleLoginMutation } = useGoogleLogin(); // Destructure mutateAsync from the hook
+
   const handleRoleSelection = async (role: string) => {
     setIsLoading(true);
-    
+
     try {
       if (!googleResponse?.credential) {
         throw new Error('Google authentication credential is missing');
       }
 
-      const result = await fetch('http://localhost:5000/auth/google/callback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          credential: googleResponse.credential,
-          role: role
-        }),
-        credentials: 'include',
+      const data = await googleLoginMutation({
+        credential: googleResponse.credential,
+        role,
       });
-      if (!result.ok) {
-        let errorMessage = 'Authentication failed';
-        try {
-          const errorData = await result.json();
-          errorMessage = errorData.message || `Authentication failed: ${result.status}`;
-        } catch {
-          errorMessage = `Authentication failed with status: ${result.status}`;
-        }
-        throw new Error(errorMessage);
-      }
 
-      const data = await result.json();
-      
       if (!data.token) {
         throw new Error('No authentication token received');
       }
@@ -71,7 +55,7 @@ export const GoogleButton = ({
       const roleRoutes = {
         student: PROTECTED_ROUTES.STUDENT,
         instructor: PROTECTED_ROUTES.INSTRUCTOR,
-        admin: PROTECTED_ROUTES.MANAGEMENT
+        admin: PROTECTED_ROUTES.MANAGEMENT,
       };
 
       const targetRoute = roleRoutes[role as keyof typeof roleRoutes];
@@ -95,20 +79,20 @@ export const GoogleButton = ({
     if (debug) {
       console.log('Google response received:', response);
     }
-    
+
     if (!response?.credential) {
       console.error('Invalid Google response received');
       onError?.('Invalid Google response received');
       return;
     }
-    
+
     setGoogleResponse(response);
     setShowRoleModal(true);
   }, [debug, onError]);
 
   useEffect(() => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    
+
     if (!clientId) {
       const error = 'Missing Google Client ID in environment variables';
       console.error(error);
@@ -131,7 +115,7 @@ export const GoogleButton = ({
         callback: handleGoogleLogin,
         ux_mode: 'redirect',
         auto_select: false,
-        context: 'signin'
+        context: 'signin',
       });
 
       const buttonDiv = document.getElementById('googleButton');
@@ -140,7 +124,7 @@ export const GoogleButton = ({
           type: 'standard',
           theme: 'outline',
           size: 'large',
-          width: 384
+          width: 384,
         });
       } else {
         console.error('Google button container not found');
@@ -153,8 +137,8 @@ export const GoogleButton = ({
 
   return (
     <>
-      <div 
-        id="googleButton" 
+      <div
+        id="googleButton"
         className={`w-full min-h-[40px] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
       />
       <RoleSelectionModal

@@ -9,9 +9,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { GoogleButton } from "../Components/GoogleButton";
-import { registerUser, resendVerificationEmail } from "../action/auth";
 import { PROTECTED_ROUTES } from "../constant/route";
 import { useAuthStore } from "../store/useAuthStore";
+import { useRegisterUser, useResendVerificationEmail, RegisterFormData } from "../hooks/useAuth";
 
 const validationSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -27,11 +27,13 @@ const validationSchema = z.object({
 type FormData = z.infer<typeof validationSchema>;
 
 const Registration = () => {
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
   const router = useRouter();
+  const login = useAuthStore((state) => state.login);
+
+  const registerMutation = useRegisterUser();
+  const resendVerificationMutation = useResendVerificationEmail();
 
   const {
     register,
@@ -42,76 +44,58 @@ const Registration = () => {
   });
 
   const handleSubmitForm = async (data: FormData) => {
-    setError("");
-    setIsLoading(true);
-  
-    const formData = new FormData();
-    formData.append("firstName", data.firstName);
-    formData.append("lastName", data.lastName);
-    formData.append("email", data.email);
-    formData.append("password", data.password);
-    formData.append("role", data.role);
-  
     try {
-      const result = await registerUser(formData);
-    
-      if (result.success) {
-        if (result.verificationRequired) {
-          // Handle verification required case
-          setVerificationSent(true);
-          setVerificationEmail(data.email);
-          toast.success("Registration successful! Please check your email to verify your account.");
-        } else {
-          // Direct login if verification not required 
-          toast.success("Registration successful");
-          const login = useAuthStore.getState().login;
+      const result = await registerMutation.mutateAsync(data);
+      
+      // Handle successful registration
+      if (result) {
+        // Assume verification is required based on your API design
+        setVerificationSent(true);
+        setVerificationEmail(data.email);
+        toast.success("Registration successful! Please check your email to verify your account.");
+        
+        // For direct login scenario (if your API returns a token):
+        if (result.token) {
+          await login(result.token);
           
-          try {
-            await login(result.data.token);
-            
-            // Navigate based on role
-            const userRole = data.role.toLowerCase();
-            switch (userRole) {
-              case "student":
-                router.push(PROTECTED_ROUTES.STUDENT);
-                break;
-              case "instructor":
-                router.push(PROTECTED_ROUTES.INSTRUCTOR);
-                break;
-              case "admin":
-                router.push(PROTECTED_ROUTES.MANAGEMENT);
-                break;
-              default:
-                router.push('/login');
-            }
-          } catch (error) {
-            toast.error("Authentication failed after registration");
-            setError("Authentication failed");
+          // Navigate based on role
+          const userRole = data.role.toLowerCase();
+          switch (userRole) {
+            case "student":
+              router.push(PROTECTED_ROUTES.STUDENT);
+              break;
+            case "instructor":
+              router.push(PROTECTED_ROUTES.INSTRUCTOR);
+              break;
+            case "admin":
+              router.push(PROTECTED_ROUTES.MANAGEMENT);
+              break;
+            default:
+              router.push('/login');
           }
         }
-      } else {
-        toast.error(result.error);
-        setError(result.error || "");
       }
-    } catch (err) {
-      toast.error("An unexpected error occurred");
-      setError("An unexpected error occurred. Please try again later.");
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("An unexpected error occurred. Please try again later.");
+      }
     }
   };
 
   const handleResendVerification = async () => {
     if (!verificationEmail) return;
     
-    setIsLoading(true);
-    const result = await resendVerificationEmail(verificationEmail);
-    setIsLoading(false);
-    
-    if (result.success) {
+    try {
+      await resendVerificationMutation.mutateAsync(verificationEmail);
       toast.success("Verification email resent. Please check your inbox.");
-    } else {
-      toast.error(result.error || "Failed to resend verification email");
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to resend verification email");
+      }
     }
   };
 
@@ -133,10 +117,10 @@ const Registration = () => {
             
             <button
               onClick={handleResendVerification}
-              disabled={isLoading}
+              disabled={resendVerificationMutation.isPending}
               className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-80 focus:ring-offset-2 transition-colors"
             >
-              {isLoading ? (
+              {resendVerificationMutation.isPending ? (
                 <>
                   <Loader2 className="animate-spin h-4 w-4 mr-2" />
                   Sending...
@@ -182,7 +166,14 @@ const Registration = () => {
           </div>
 
           <form onSubmit={handleSubmit(handleSubmitForm)} className="space-y-6">
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {registerMutation.error && (
+              <p className="text-red-500 text-sm">
+                {registerMutation.error instanceof Error 
+                  ? registerMutation.error.message 
+                  : "An error occurred"}
+              </p>
+            )}
+            
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -302,10 +293,10 @@ const Registration = () => {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={registerMutation.isPending}
               className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-80 focus:ring-offset-2 transition-colors"
             >
-              {isLoading ? (
+              {registerMutation.isPending ? (
                 <>
                   <Loader2 className="animate-spin h-4 w-4 mr-2" />
                   Creating Account...

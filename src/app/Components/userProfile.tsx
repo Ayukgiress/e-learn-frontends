@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { toast } from 'sonner';
+import { API_BASE_URL } from '../constant/route';
 
 type ProfileFormData = {
   firstName: string;
@@ -40,7 +41,7 @@ const UserProfile = () => {
       setIsLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`http://localhost:5000/api/users/${user.id}/profile`, {
+        const response = await fetch(`${API_BASE_URL}/api/users/${user.id}/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

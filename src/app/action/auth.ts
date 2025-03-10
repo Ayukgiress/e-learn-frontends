@@ -1,5 +1,6 @@
 'use server';
 
+
 import { z } from "zod";
 
 const validationSchema = z.object({
@@ -10,7 +11,17 @@ const validationSchema = z.object({
   role: z.string().min(1, "Please select a role"),
 });
 
-export async function registerUser(formData: FormData) {
+export async function validateRegistrationData(formData: FormData) {
+  return validationSchema.safeParse({
+    firstName: formData.get('firstName'),
+    lastName: formData.get('lastName'),
+    email: formData.get('email'),
+    password: formData.get('password'),
+    role: formData.get('role'),
+  });
+}
+
+export async function serverRegisterUser(formData: FormData) {
   const validatedFields = validationSchema.safeParse({
     firstName: formData.get('firstName'),
     lastName: formData.get('lastName'),
@@ -56,7 +67,7 @@ export async function registerUser(formData: FormData) {
   }
 }
 
-export async function verifyEmail(token: string) {
+export async function serverVerifyEmail(token: string) {
   try {
     const response = await fetch(`http://localhost:5000/auth/verify-email/${token}`, {
       method: "GET",
@@ -83,7 +94,7 @@ export async function verifyEmail(token: string) {
   }
 }
 
-export async function resendVerificationEmail(email: string) {
+export async function serverResendVerificationEmail(email: string) {
   try {
     const response = await fetch(`http://localhost:5000/auth/resend-verification`, {
       method: "POST",

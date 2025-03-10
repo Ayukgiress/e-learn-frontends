@@ -9,6 +9,7 @@ import { Toaster } from "sonner";
 import QueryProvider from "./Components/QueryProvider";
 import { useAuthStore } from "./store/useAuthStore";
 import { useEffect, useState } from "react";
+import Providers from "./providers";
 
 // Configure fonts
 const geistSans = Geist({
@@ -23,7 +24,6 @@ const geistMono = Geist_Mono({
 
 const AuthInitializer = ({ children }: { children: React.ReactNode }) => {
   const checkAuth = useAuthStore((state) => state.checkAuth);
-  // Add mounting state to prevent hydration mismatch
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -31,15 +31,13 @@ const AuthInitializer = ({ children }: { children: React.ReactNode }) => {
     checkAuth();
   }, [checkAuth]);
 
-  // Return null or loading state until client-side hydration is complete
   if (!isMounted) {
-    return null; // Or return a loading spinner/placeholder
+    return null; 
   }
 
   return <>{children}</>;
 };
 
-// Wrap Toaster in a client-side only component
 const ClientOnlyToaster = () => {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -76,7 +74,9 @@ export default function RootLayout({
       <body>
         <QueryProvider>
           <AuthInitializer>
+            <Providers>
             {children}
+            </Providers>
             <ClientOnlyToaster />
           </AuthInitializer>
         </QueryProvider>

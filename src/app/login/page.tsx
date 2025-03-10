@@ -4,31 +4,14 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Mail, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
-import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
 import { useAuthStore } from "../store/useAuthStore";
 import { GoogleButton } from "../Components/GoogleButton";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { PROTECTED_ROUTES } from "../constant/route";
-
-interface LoginResponse {
-  token: string;
-  user?: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    createdAt: string;
-    updatedAt: string;
-  };
-  message?: string;
-  success?: boolean;
-  refreshToken?: string;
-  expiresIn?: number;
-}
+import { useLogin } from "../hooks/useLogin";  
+import { API_BASE_URL, PROTECTED_ROUTES } from "../constant/route";
 
 interface UserResponse {
   id: string;
@@ -55,6 +38,8 @@ const Login: React.FC = () => {
   const { login } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  
+  const { mutate } = useLogin();
 
   const {
     register,
@@ -66,15 +51,12 @@ const Login: React.FC = () => {
 
   const fetchUserData = async (token: string): Promise<UserResponse> => {
     try {
-      const response = await axios.get<UserResponse>(
-        "http://localhost:5000/auth/me",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      return response.data;
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return await response.json();
     } catch (error) {
       throw new Error("Failed to fetch user data");
     }
@@ -84,61 +66,53 @@ const Login: React.FC = () => {
     setIsLoading(true);
   
     try {
-      // Step 1: Login and get token
-      const response = await axios.post<LoginResponse>(
-        "http://localhost:5000/auth/login",
-        {
-          email: data.email,
-          password: data.password,
-        }
-      );
-  
-      if (response.data.token) {
-        await login(response.data.token);
-        
-        let userData;
-        
-        if (response.data.user) {
-          userData = response.data.user;
-        } else {
-          userData = await fetchUserData(response.data.token);
-        }
-        
-        useAuthStore.setState({ 
-          user: userData,
-          isAdmin: userData.role === "admin",
-          isStudent: userData.role === "student",
-          isInstructor: userData.role === "instructor",
-        });
-  
-        // Step 5: Redirect based on role
-        switch (userData.role.toLowerCase()) {
-          case 'admin':
-            router.push(PROTECTED_ROUTES.MANAGEMENT);
-            break;
-          case 'student':
-            router.push(PROTECTED_ROUTES.STUDENT);
-            break;
-          case 'instructor':
-            router.push(PROTECTED_ROUTES.INSTRUCTOR);
-            break;
-          default:
-            console.log("No specific role matched, redirecting to default dashboard.");
-            router.push("/dashboard"); 
-        }
-        
-        toast.success("Login successful");
-      } else {
-        throw new Error("No authentication token received");
-      }
+      mutate(data, {
+        onSuccess: async (responseData) => {
+          if (responseData.token) {
+            await login(responseData.token);
+            
+            let userData;
+            
+            if (responseData.user) {
+              userData = responseData.user;
+            } else {
+              userData = await fetchUserData(responseData.token);
+            }
+            
+            useAuthStore.setState({ 
+              user: userData,
+              isAdmin: userData.role === "admin",
+              isStudent: userData.role === "student",
+              isInstructor: userData.role === "instructor",
+            });
+
+            // Navigate to the corresponding protected route based on the user's role
+            switch (userData.role.toLowerCase()) {
+              case 'admin':
+                router.push(PROTECTED_ROUTES.MANAGEMENT);
+                break;
+              case 'student':
+                router.push(PROTECTED_ROUTES.STUDENT);
+                break;
+              case 'instructor':
+                router.push(PROTECTED_ROUTES.INSTRUCTOR);
+                break;
+              default:
+                console.log("No specific role matched, redirecting to default dashboard.");
+                router.push("/dashboard");
+            }
+            
+            toast.success("Login successful");
+          } else {
+            throw new Error("No authentication token received");
+          }
+        },
+        onError: (error) => {
+          toast.error(error.message || "Unable to login. Please check your credentials and try again.");
+        },
+      });
     } catch (err) {
-      const error = err as AxiosError<{ message?: string }>;
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Unable to login. Please check your credentials and try again.";
-      console.error("Login error:", errorMessage);
-      toast.error(errorMessage);
+      toast.error("Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }

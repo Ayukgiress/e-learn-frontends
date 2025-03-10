@@ -4,8 +4,9 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
+import { useForgotPasswordMutation } from "../hooks/useLogin"; 
+import { API_BASE_URL } from "../constant/route";
 
 const validationSchema = z.object({
   email: z.string().email("Invalid email address").min(1, "Email is required"),
@@ -24,29 +25,22 @@ const ForgotPasswordPage = () => {
     resolver: zodResolver(validationSchema),
   });
 
-  const onSubmit = async (data: FormData) => {
+  const { mutate } = useForgotPasswordMutation();
+
+  const onSubmit = (data: FormData) => {
     setIsLoading(true);
-
-    try {
-      const response = await axios.post(
-        "http://localhost:5000/auth/forgot-password",
-        {
-          email: data.email,
-        }
-      );
-
-      if (response.data.success) {
+    mutate(data, {
+      onSuccess: () => {
         toast.success("Password reset email sent successfully!");
-      } else {
-        throw new Error(response.data.message || "Failed to send reset email");
-      }
-    } catch (error) {
-      const err = error as AxiosError<{ message?: string }>;
-      toast.error(err.response?.data?.message || "An error occurred");
-      console.error("Forgot password error:", err);
-    } finally {
-      setIsLoading(false);
-    }
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || "An error occurred");
+        console.error("Forgot password error:", error);
+      },
+      onSettled: () => {
+        setIsLoading(false);
+      },
+    });
   };
 
   return (
@@ -97,10 +91,10 @@ const ForgotPasswordPage = () => {
                   </div>
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || isMutating}
                     className="py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm dark:focus:ring-offset-gray-800"
                   >
-                    {isLoading ? "Sending..." : "Reset password"}
+                    {isLoading || isMutating ? "Sending..." : "Reset password"}
                   </button>
                 </div>
               </form>
