@@ -1,0 +1,8 @@
+reviews:
+  enabled: true           # Enable reviews in your repository.
+  review_status: true     # Set to true to show the review status message.
+  auto_review:
+    branches:             # Specify which branches should trigger auto-reviews.
+      - main              # Enable auto-review for the main branch.
+      - develop           # Enable auto-review for the develop branch.
+      - feature/authentication # Enable auto-review for the 'feature/authentication' branch.
