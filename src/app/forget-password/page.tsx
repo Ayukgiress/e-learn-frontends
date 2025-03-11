@@ -1,10 +1,52 @@
-import React from "react";
+"use client";
 
-const page = () => {
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+import { useForgotPasswordMutation } from "../hooks/useLogin"; 
+import { API_BASE_URL } from "../constant/route";
+
+const validationSchema = z.object({
+  email: z.string().email("Invalid email address").min(1, "Email is required"),
+});
+
+type FormData = z.infer<typeof validationSchema>;
+
+const ForgotPasswordPage = () => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(validationSchema),
+  });
+
+  const { mutate } = useForgotPasswordMutation();
+
+  const onSubmit = (data: FormData) => {
+    setIsLoading(true);
+    mutate(data, {
+      onSuccess: () => {
+        toast.success("Password reset email sent successfully!");
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || "An error occurred");
+        console.error("Forgot password error:", error);
+      },
+      onSettled: () => {
+        setIsLoading(false);
+      },
+    });
+  };
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-600 to-purple-500 ">
-      <main id="content" role="main" class="w-full  max-w-md mx-auto p-6">
-        <div className="mt-7 bg-white text-black rounded-xl shadow-lg  dark:border-blue-600 border-2 border-indigo-300">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-600 to-white">
+      <main id="content" role="main" className="w-full max-w-md mx-auto p-6">
+        <div className="mt-7 bg-white text-black rounded-xl shadow-lg dark:border-blue-600 border-2 border-indigo-300">
           <div className="p-4 sm:p-7">
             <div className="text-center">
               <h1 className="block text-2xl font-bold text-black dark:text-black">
@@ -22,7 +64,7 @@ const page = () => {
             </div>
 
             <div className="mt-5">
-              <form>
+              <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="grid gap-y-4">
                   <div>
                     <label
@@ -35,25 +77,24 @@ const page = () => {
                       <input
                         type="email"
                         id="email"
-                        name="email"
                         className="py-3 px-4 block w-full border-2 border-gray-200 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm"
+                        {...register("email")}
                         required
                         aria-describedby="email-error"
                       />
                     </div>
-                    <p
-                      className="hidden text-xs text-red-600 mt-2"
-                      id="email-error"
-                    >
-                      Please include a valid email address so we can get back to
-                      you
-                    </p>
+                    {errors.email && (
+                      <p className="text-xs text-red-600 mt-2" id="email-error">
+                        {errors.email.message}
+                      </p>
+                    )}
                   </div>
                   <button
                     type="submit"
+                    disabled={isLoading || isMutating}
                     className="py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm dark:focus:ring-offset-gray-800"
                   >
-                    Reset password
+                    {isLoading || isMutating ? "Sending..." : "Reset password"}
                   </button>
                 </div>
               </form>
@@ -91,4 +132,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default ForgotPasswordPage;
