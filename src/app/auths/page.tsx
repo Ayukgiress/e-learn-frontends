@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { GoogleButton } from "../Components/GoogleButton";
+import { GoogleLoginButton } from "../Components/GoogleButton";
 import { PROTECTED_ROUTES } from "../constant/route";
 import { useAuthStore } from "../store/useAuthStore";
 import { useRegisterUser, useResendVerificationEmail, RegisterFormData } from "../hooks/useAuth";
@@ -47,14 +47,11 @@ const Registration = () => {
     try {
       const result = await registerMutation.mutateAsync(data);
       
-      // Handle successful registration
       if (result) {
-        // Assume verification is required based on your API design
         setVerificationSent(true);
         setVerificationEmail(data.email);
         toast.success("Registration successful! Please check your email to verify your account.");
         
-        // For direct login scenario (if your API returns a token):
         if (result.token) {
           await login(result.token);
           
@@ -152,7 +149,7 @@ const Registration = () => {
             Create your account
           </h2>
 
-          <GoogleButton />
+          <GoogleLoginButton />
 
           <div className="relative mb-8">
             <div className="absolute inset-0 flex items-center">

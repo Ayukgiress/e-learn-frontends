@@ -69,7 +69,8 @@ export async function serverRegisterUser(formData: FormData) {
 
 export async function serverVerifyEmail(token: string) {
   try {
-    const response = await fetch(`http://localhost:5000/auth/verify-email/${token}`, {
+    // Notice the URL structure change - using query parameter instead of path parameter
+    const response = await fetch(`http://localhost:5000/auth/verify-email?token=${token}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

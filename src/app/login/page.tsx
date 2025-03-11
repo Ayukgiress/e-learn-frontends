@@ -6,11 +6,12 @@ import { Mail, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuthStore } from "../store/useAuthStore";
-import { GoogleButton } from "../Components/GoogleButton";
 import { useForm } from "react-hook-form";
+import { GoogleLoginButton } from "../Components/GoogleButton";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { jwtDecode } from "jwt-decode";
 import { z } from "zod";
-import { useLogin } from "../hooks/useLogin";  
+import { useLogin } from "../hooks/useLogin";
 import { API_BASE_URL, PROTECTED_ROUTES } from "../constant/route";
 
 interface UserResponse {
@@ -34,12 +35,17 @@ const validationSchema = z.object({
 
 type FormData = z.infer<typeof validationSchema>;
 
-const Login: React.FC = () => {
-  const { login } = useAuthStore();
-  const [isLoading, setIsLoading] = useState(false);
+// In useAuthStore.ts
+interface DecodedToken {
+  role: string;
+  [key: string]: any;
+}
+
+const Login = () => {
   const router = useRouter();
-  
+  const [isLoading, setIsLoading] = useState(false);
   const { mutate } = useLogin();
+  const login = useAuthStore((state) => state.login);
 
   const {
     register,
@@ -49,74 +55,45 @@ const Login: React.FC = () => {
     resolver: zodResolver(validationSchema),
   });
 
-  const fetchUserData = async (token: string): Promise<UserResponse> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return await response.json();
-    } catch (error) {
-      throw new Error("Failed to fetch user data");
-    }
-  };
-
-  const onSubmit = async (data: FormData): Promise<void> => {
+  const onSubmit = async (data: FormData) => {
     setIsLoading(true);
-  
     try {
       mutate(data, {
-        onSuccess: async (responseData) => {
-          if (responseData.token) {
-            await login(responseData.token);
+        onSuccess: async (response) => {
+          if (response.token) {
+            await login(response.token);
+            const user = useAuthStore.getState().user;
             
-            let userData;
-            
-            if (responseData.user) {
-              userData = responseData.user;
-            } else {
-              userData = await fetchUserData(responseData.token);
+            if (user?.role) {
+              const role = user.role.toLowerCase();
+              switch (role) {
+                case "admin":
+                  router.push(PROTECTED_ROUTES.MANAGEMENT);
+                  break;
+                case "instructor":
+                  router.push(PROTECTED_ROUTES.INSTRUCTOR);
+                  break;
+                case "student":
+                  router.push(PROTECTED_ROUTES.STUDENT);
+                  break;
+                default:
+                  router.push("/dashboard");
+              }
+              toast.success("Login successful");
             }
-            
-            useAuthStore.setState({ 
-              user: userData,
-              isAdmin: userData.role === "admin",
-              isStudent: userData.role === "student",
-              isInstructor: userData.role === "instructor",
-            });
-
-            // Navigate to the corresponding protected route based on the user's role
-            switch (userData.role.toLowerCase()) {
-              case 'admin':
-                router.push(PROTECTED_ROUTES.MANAGEMENT);
-                break;
-              case 'student':
-                router.push(PROTECTED_ROUTES.STUDENT);
-                break;
-              case 'instructor':
-                router.push(PROTECTED_ROUTES.INSTRUCTOR);
-                break;
-              default:
-                console.log("No specific role matched, redirecting to default dashboard.");
-                router.push("/dashboard");
-            }
-            
-            toast.success("Login successful");
-          } else {
-            throw new Error("No authentication token received");
           }
         },
         onError: (error) => {
-          toast.error(error.message || "Unable to login. Please check your credentials and try again.");
+          toast.error(error.message || "Login failed. Please try again.");
         },
       });
     } catch (err) {
-      toast.error("Login failed. Please try again.");
+      toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-500 to-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -129,7 +106,7 @@ const Login: React.FC = () => {
         </div>
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           <div className="p-8">
-            <GoogleButton />
+            <GoogleLoginButton />
 
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">

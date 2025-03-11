@@ -6,7 +6,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "sonner";
-import QueryProvider from "./Components/QueryProvider";
 import { useAuthStore } from "./store/useAuthStore";
 import { useEffect, useState } from "react";
 import Providers from "./providers";
@@ -72,14 +71,12 @@ export default function RootLayout({
 
       </head>
       <body>
-        <QueryProvider>
           <AuthInitializer>
             <Providers>
             {children}
             </Providers>
             <ClientOnlyToaster />
           </AuthInitializer>
-        </QueryProvider>
       </body>
     </html>
   );
