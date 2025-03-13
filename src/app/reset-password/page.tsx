@@ -1,22 +1,46 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useForgotPasswordMutation } from "../hooks/useLogin"; 
-import { API_BASE_URL } from "../constant/route";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useResetPasswordMutation } from "../hooks/useLogin"; // Import from your hooks file
 
-const validationSchema = z.object({
-  email: z.string().email("Invalid email address").min(1, "Email is required"),
-});
+const validationSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+      ),
+    confirmPassword: z.string().min(1, "Confirm your password"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type FormData = z.infer<typeof validationSchema>;
 
-const ForgotPasswordPage = () => {
+const ResetPasswordPage = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [isMutating, setIsMutating] = useState(false); 
+  const [token, setToken] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const urlToken = searchParams.get("token");
+    if (urlToken) {
+      setToken(urlToken);
+    } else {
+      toast.error("Invalid or missing reset token");
+      router.push("/forgot-password");
+    }
+  }, [searchParams, router]);
 
   const {
     register,
@@ -26,24 +50,34 @@ const ForgotPasswordPage = () => {
     resolver: zodResolver(validationSchema),
   });
 
-  const { mutate } = useForgotPasswordMutation();
+  // Use the imported hook
+  const { mutate } = useResetPasswordMutation();
 
   const onSubmit = (data: FormData) => {
+    if (!token) {
+      toast.error("Invalid reset token");
+      return;
+    }
+
     setIsLoading(true);
-    setIsMutating(true); 
-    mutate(data, {
-      onSuccess: () => {
-        toast.success("Password reset email sent successfully!");
-      },
-      onError: (error: any) => {
-        toast.error(error?.message || "An error occurred");
-        console.error("Forgot password error:", error);
-      },
-      onSettled: () => {
-        setIsLoading(false);
-        setIsMutating(false); 
-      },
-    });
+    mutate(
+      { token, newPassword: data.newPassword },
+      {
+        onSuccess: () => {
+          toast.success("Password reset successfully!");
+          setTimeout(() => {
+            router.push("/login");
+          }, 2000);
+        },
+        onError: (error: any) => {
+          toast.error(error?.message || "An error occurred");
+          console.error("Reset password error:", error);
+        },
+        onSettled: () => {
+          setIsLoading(false);
+        },
+      }
+    );
   };
 
   return (
@@ -53,12 +87,12 @@ const ForgotPasswordPage = () => {
           <div className="p-4 sm:p-7">
             <div className="text-center">
               <h1 className="block text-2xl font-bold text-black dark:text-black">
-                Forgot password?
+                Reset your password
               </h1>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                 Remember your password?
                 <a
-                  className="text-blue-600 decoration-2 hover:underline font-medium"
+                  className="text-blue-600 decoration-2 hover:underline font-medium ml-1"
                   href="/login"
                 >
                   Login here
@@ -71,33 +105,58 @@ const ForgotPasswordPage = () => {
                 <div className="grid gap-y-4">
                   <div>
                     <label
-                      htmlFor="email"
+                      htmlFor="newPassword"
                       className="block text-sm font-bold ml-1 mb-2 dark:text-black"
                     >
-                      Email address
+                      New Password
                     </label>
                     <div className="relative">
                       <input
-                        type="email"
-                        id="email"
+                        type="password"
+                        id="newPassword"
                         className="py-3 px-4 block w-full border-2 border-gray-200 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm"
-                        {...register("email")}
+                        {...register("newPassword")}
                         required
-                        aria-describedby="email-error"
+                        aria-describedby="password-error"
                       />
                     </div>
-                    {errors.email && (
-                      <p className="text-xs text-red-600 mt-2" id="email-error">
-                        {errors.email.message}
+                    {errors.newPassword && (
+                      <p className="text-xs text-red-600 mt-2" id="password-error">
+                        {errors.newPassword.message}
                       </p>
                     )}
                   </div>
+
+                  <div>
+                    <label
+                      htmlFor="confirmPassword"
+                      className="block text-sm font-bold ml-1 mb-2 dark:text-black"
+                    >
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        className="py-3 px-4 block w-full border-2 border-gray-200 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm"
+                        {...register("confirmPassword")}
+                        required
+                        aria-describedby="confirm-password-error"
+                      />
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="text-xs text-red-600 mt-2" id="confirm-password-error">
+                        {errors.confirmPassword.message}
+                      </p>
+                    )}
+                  </div>
+
                   <button
                     type="submit"
-                    disabled={isLoading || isMutating} // Disable button while loading or mutating
+                    disabled={isLoading}
                     className="py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm dark:focus:ring-offset-gray-800"
                   >
-                    {isLoading || isMutating ? "Sending..." : "Reset password"} {/* Button text based on loading or mutating */}
+                    {isLoading ? "Resetting..." : "Reset password"}
                   </button>
                 </div>
               </form>
@@ -135,4 +194,4 @@ const ForgotPasswordPage = () => {
   );
 };
 
-export default ForgotPasswordPage;
+export default ResetPasswordPage;

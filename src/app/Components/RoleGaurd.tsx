@@ -16,7 +16,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({ role, children }) => {
   const [hasChecked, setHasChecked] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !hasChecked) {
+    if (typeof window !== "undefined" && !hasChecked) {
       useAuthStore.getState().checkAuth();
       setHasChecked(true);
     }
@@ -28,7 +28,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({ role, children }) => {
       console.log("User:", user);
       console.log("Expected role:", role);
       console.log("Current role:", user?.role);
-      
+
       // If we don't have a user or role doesn't match, try to fetch from backend
       if (!user || !user.role) {
         const token = localStorage.getItem("token");
@@ -39,19 +39,25 @@ const RoleGuard: React.FC<RoleGuardProps> = ({ role, children }) => {
               Authorization: `Bearer ${token}`,
             },
           })
-          .then(response => response.json())
-          .then(userData => {
-            useAuthStore.setState({
-              user: userData,
-              isAdmin: userData.role === "admin",
-              isStudent: userData.role === "student",
-              isInstructor: userData.role === "instructor",
+            .then((response) => response.json())
+            .then((userData) => {
+              // Normalize role to lowercase
+              const normalizedRole = userData.role?.toLowerCase() || "guest";
+
+              useAuthStore.setState({
+                user: {
+                  ...userData,
+                  role: normalizedRole,
+                },
+                isAdmin: normalizedRole === "admin",
+                isStudent: normalizedRole === "student",
+                isInstructor: normalizedRole === "instructor",
+              });
+            })
+            .catch((error) => {
+              console.error("Failed to fetch user data:", error);
+              router.push("/unauthorized");
             });
-          })
-          .catch(error => {
-            console.error("Failed to fetch user data:", error);
-            router.push("/unauthorized");
-          });
         } else {
           router.push("/unauthorized");
         }
@@ -64,8 +70,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({ role, children }) => {
   if (isLoading || !hasChecked) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>            isInstructor: userData.role === "instructor",
-
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }

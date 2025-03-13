@@ -37,13 +37,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const decoded = jwtDecode<UserData>(token);
       console.log("Decoded token:", decoded);
       
-      // Save token to localStorage
       if (typeof window !== "undefined") {
         localStorage.setItem("token", token);
       }
       
       const currentState = get();
       const currentUser: UserData = currentState.user || {} as UserData;
+      
+      const normalizedRole = decoded.role?.toLowerCase() || currentUser.role?.toLowerCase() || "guest";
       
       const updatedUser = {
         ...currentUser, 
@@ -53,15 +54,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         lastName: decoded.lastName || currentUser.lastName,
         createdAt: decoded.createdAt || currentUser.createdAt,
         updatedAt: decoded.updatedAt || currentUser.updatedAt,
-        role: decoded.role || currentUser?.role || "guest", 
+        role: normalizedRole, 
         exp: decoded.exp,
       };
       
       set({
         user: updatedUser,
-        isAdmin: updatedUser.role === "admin",
-        isStudent: updatedUser.role === "student",
-        isInstructor: updatedUser.role === "instructor",
+        isAdmin: normalizedRole === "admin",
+        isStudent: normalizedRole === "student",
+        isInstructor: normalizedRole === "instructor",
         isLoading: false,
       });
     } catch (error) {
@@ -106,12 +107,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             });
           } else {
             console.log("Token valid");
-            const role = decoded.role || "guest"; 
+            const normalizedRole = decoded.role?.toLowerCase() || "guest"; 
             set({
-              user: decoded,
-              isAdmin: role === "admin",
-              isStudent: role === "student",
-              isInstructor: role === "instructor",
+              user: {
+                ...decoded,
+                role: normalizedRole
+              },
+              isAdmin: normalizedRole === "admin",
+              isStudent: normalizedRole === "student",
+              isInstructor: normalizedRole === "instructor",
               isLoading: false,
             });
           }

@@ -2,6 +2,7 @@
 
 
 import { z } from "zod";
+import { API_BASE_URL } from "../constant/route";
 
 const validationSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -38,7 +39,7 @@ export async function serverRegisterUser(formData: FormData) {
   }
 
   try {
-    const response = await fetch("http://localhost:5000/auth/signup", {
+    const response = await fetch(`${API_BASE_URL}/auth/signup`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -69,8 +70,7 @@ export async function serverRegisterUser(formData: FormData) {
 
 export async function serverVerifyEmail(token: string) {
   try {
-    // Notice the URL structure change - using query parameter instead of path parameter
-    const response = await fetch(`http://localhost:5000/auth/verify-email?token=${token}`, {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-email?token=${token}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -97,7 +97,7 @@ export async function serverVerifyEmail(token: string) {
 
 export async function serverResendVerificationEmail(email: string) {
   try {
-    const response = await fetch(`http://localhost:5000/auth/resend-verification`, {
+    const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
