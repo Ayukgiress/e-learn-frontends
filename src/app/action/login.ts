@@ -1,6 +1,8 @@
 'use server';
 
+import { Import } from "lucide-react";
 import { z } from "zod";
+import { API_BASE_URL } from "../constant/route";
 
 const validationSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -11,7 +13,6 @@ const validationSchema = z.object({
 });
 
 export async function registerUser(formData: FormData) {
-  // Validate form data with Zod schema
   const validatedFields = validationSchema.safeParse({
     firstName: formData.get('firstName'),
     lastName: formData.get('lastName'),
@@ -33,8 +34,7 @@ export async function registerUser(formData: FormData) {
   }
 
   try {
-    // First, check if email already exists to provide immediate feedback
-    const checkEmailResponse = await fetch("http://localhost:5000/auth/check-email", {
+    const checkEmailResponse = await fetch(`${API_BASE_URL}/auth/check-email`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -52,14 +52,12 @@ export async function registerUser(formData: FormData) {
       }
     }
 
-    // Proceed with registration
-    const response = await fetch("http://localhost:5000/auth/signup", {
+    const response = await fetch(`${API_BASE_URL}/auth/signup`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(validatedFields.data),
-      // Increase timeout for potentially slow verification processes
       signal: AbortSignal.timeout(10000),
     });
 
@@ -70,7 +68,6 @@ export async function registerUser(formData: FormData) {
 
     const data = await response.json();
     
-    // Check if verification email was sent
     if (data.verificationRequired) {
       return { 
         success: true,
@@ -80,7 +77,6 @@ export async function registerUser(formData: FormData) {
       };
     }
     
-    // Return normal success with token if no verification required
     return { 
       success: true, 
       data 
@@ -94,10 +90,9 @@ export async function registerUser(formData: FormData) {
   }
 }
 
-// Add a verification function for the verification process
 export async function verifyEmail(token: string) {
   try {
-    const response = await fetch(`http://localhost:5000/auth/verify-email`, {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-email`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -123,10 +118,9 @@ export async function verifyEmail(token: string) {
   }
 }
 
-// Add a function to resend verification email
 export async function resendVerificationEmail(email: string) {
   try {
-    const response = await fetch(`http://localhost:5000/auth/resend-verification`, {
+    const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
