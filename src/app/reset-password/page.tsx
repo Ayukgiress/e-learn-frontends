@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useResetPasswordMutation } from "../hooks/useLogin"; // Import from your hooks file
+import { useResetPasswordMutation } from "../hooks/useLogin"; 
 
 const validationSchema = z
   .object({
@@ -50,7 +50,6 @@ const ResetPasswordPage = () => {
     resolver: zodResolver(validationSchema),
   });
 
-  // Use the imported hook
   const { mutate } = useResetPasswordMutation();
 
   const onSubmit = (data: FormData) => {
@@ -81,7 +80,7 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-600 to-white">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-white">
       <main id="content" role="main" className="w-full max-w-md mx-auto p-6">
         <div className="mt-7 bg-white text-black rounded-xl shadow-lg dark:border-blue-600 border-2 border-indigo-300">
           <div className="p-4 sm:p-7">
