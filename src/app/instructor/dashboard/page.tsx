@@ -13,8 +13,8 @@ interface Course {
   price?: number;
   attachments?: string[];
   createdAt: string;
-  createdBy: string; // Field for the creator's name
-  imageUrl?: string; // Field for the associated image URL
+  createdBy: string; 
+  imageUrl?: string; 
 }
 
 const InstructorDashboard: React.FC = () => {
@@ -30,8 +30,8 @@ const InstructorDashboard: React.FC = () => {
     category: '',
     level: 'beginner',
     price: 0,
-    instructor: 'Instructor Name', // Set instructor to the current user's name
-    imageUrl: '' // Field for the course image URL
+    instructor: 'Instructor Name', 
+    imageUrl: '' 
   });
   const [files, setFiles] = useState<FileList | null>(null);
   const [currentPage, setCurrentPage] = useState<'courses' | 'analytics'>('courses');
@@ -89,8 +89,8 @@ const InstructorDashboard: React.FC = () => {
       category: course.category,
       level: course.level,
       price: course.price ?? 0,
-      instructor: course.createdBy, // Set to the course creator's name
-      imageUrl: course.imageUrl ?? '', // Set image URL if available
+      instructor: course.createdBy, 
+      imageUrl: course.imageUrl ?? '', 
     });
     setShowForm(true);
   };
@@ -100,7 +100,6 @@ const InstructorDashboard: React.FC = () => {
     setLoading(true);
     const formDataToSend = new FormData();
     
-    // Ensure each value exists before appending it to FormData
     Object.entries(formData).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         formDataToSend.append(key, value.toString());
@@ -205,10 +204,7 @@ const InstructorDashboard: React.FC = () => {
                   <label className="block text-gray-700 mb-2">Description</label>
                   <textarea name="description" value={formData.description} onChange={handleInputChange} className="w-full border border-gray-300 rounded px-3 py-2" rows={4} required></textarea>
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-gray-700 mb-2">Course Image</label>
-                  <input type="file" name="imageUrl" onChange={handleFileChange} className="w-full border border-gray-300 rounded px-3 py-2" />
-                </div>
+               
                 <div className="md:col-span-2">
                   <label className="block text-gray-700 mb-2">Course Materials</label>
                   <div className="flex items-center">
