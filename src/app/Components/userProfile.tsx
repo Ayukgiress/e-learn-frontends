@@ -41,7 +41,7 @@ const UserProfile = () => {
       setIsLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`${API_BASE_URL}/api/users/${user.id}/profile`, {
+        const response = await fetch(`${API_BASE_URL}/users/${user.id}/me`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -244,36 +244,10 @@ const UserProfile = () => {
                         <p className="mt-1 text-gray-900">{formData.email}</p>
                       )}
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Phone</label>
-                      {isEditing ? (
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                        />
-                      ) : (
-                        <p className="mt-1 text-gray-900">{formData.phone || "Not provided"}</p>
-                      )}
-                    </div>
+                  
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Address</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                      />
-                    ) : (
-                      <p className="mt-1 text-gray-900">{formData.address || "Not provided"}</p>
-                    )}
-                  </div>
+                  
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Bio</label>

@@ -2,32 +2,25 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
 import { useGoogleLogin } from '../hooks/useAuth';
+import { Mutation } from '@tanstack/react-query';
 
 
 export const GoogleCallback = () => {
   const router = useRouter();
   const { credential } = router.query; 
 
-  const mutation = useGoogleLogin();
+  const { processAuthToken } = useGoogleLogin();
 
   useEffect(() => {
     if (credential) {
-      mutation.mutate(
-        {
-          credential,
-          role: 'user',
-        },
-        {
-          onSuccess: (data) => {
-            toast.success('Logged in successfully');
-          },
-          onError: (error) => {
-            toast.error('Failed to authenticate');
-          },
-        }
-      );
+      const success = processAuthToken();
+      if (success) {
+        toast.success('Logged in successfully');
+      } else {
+        toast.error('Failed to authenticate');
+      }
     }
-  }, [credential, mutation]);
+  }, [credential]);
 
   return <div>Loading...</div>;
 };
