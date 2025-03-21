@@ -48,7 +48,7 @@ const ClientOnlyToaster = () => {
     return null;
   }
 
-  return <Toaster />;
+  return <Toaster richColors/>;
 };
 
 export default function RootLayout({

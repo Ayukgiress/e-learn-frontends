@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaEdit, FaTrash, FaPlus, FaUpload, FaBook, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import UserProfile from '@/app/Components/userProfile';
 
 interface Course {
   _id: string;
@@ -160,7 +161,7 @@ const InstructorDashboard: React.FC = () => {
         <div className="flex items-center justify-between p-4 bg-gray-100 border-t">
           <div className="flex items-center">
             <FaUserCircle className="text-2xl text-gray-600 mr-2" />
-            <span className="text-gray-800">Instructor Name</span>
+            <span className="text-gray-800"><UserProfile/></span>
           </div>
           <button onClick={handleLogout} className="text-red-600 hover:bg-red-50 p-2 rounded-full">
             <FaSignOutAlt />
