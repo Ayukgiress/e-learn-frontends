@@ -4,18 +4,17 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { serverVerifyEmail } from "../action/auth"; 
+import { serverVerifyEmail } from "../action/auth";
 
 export default function VerifyEmailPage() {
   const [verificationStatus, setVerificationStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const searchParams = useSearchParams();
+  const [token] = useState(() => searchParams.get("token"));
   const router = useRouter();
   
   useEffect(() => {
     const verifyEmail = async () => {
-      const token = searchParams.get("token");
-      
       if (!token) {
         setVerificationStatus("error");
         setErrorMessage("No verification token provided");
@@ -38,7 +37,7 @@ export default function VerifyEmailPage() {
     };
     
     verifyEmail();
-  }, [searchParams]);
+  }, [token]); 
   
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-400 to-white py-12 px-4 sm:px-6 lg:px-8">

@@ -35,7 +35,6 @@ const validationSchema = z.object({
 
 type FormData = z.infer<typeof validationSchema>;
 
-// In useAuthStore.ts
 interface DecodedToken {
   role: string;
   [key: string]: any;
@@ -55,32 +54,31 @@ const Login = () => {
     resolver: zodResolver(validationSchema),
   });
 
-  const onSubmit = async (data: FormData) => {
+ const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
       mutate(data, {
         onSuccess: async (response) => {
           if (response.token) {
-            await login(response.token);
-            const user = useAuthStore.getState().user;
+            const decoded = jwtDecode<DecodedToken>(response.token);
+            const role = decoded.role?.toLowerCase() || 'guest';
             
-            if (user?.role) {
-              const role = user.role.toLowerCase();
-              switch (role) {
-                case "admin":
-                  router.push(PROTECTED_ROUTES.MANAGEMENT);
-                  break;
-                case "instructor":
-                  router.push(PROTECTED_ROUTES.INSTRUCTOR);
-                  break;
-                case "student":
-                  router.push(PROTECTED_ROUTES.STUDENT);
-                  break;
-                default:
-                  router.push("/dashboard");
-              }
-              toast.success("Login successful");
+            await login(response.token);
+            
+            switch (role) {
+              case "admin":
+                router.push(PROTECTED_ROUTES.MANAGEMENT);
+                break;
+              case "instructor":
+                router.push(PROTECTED_ROUTES.INSTRUCTOR);
+                break;
+              case "student":
+                router.push(PROTECTED_ROUTES.STUDENT);
+                break;
+              default:
+                router.push("/dashboard");
             }
+            toast.success("Login successful");
           }
         },
         onError: (error) => {
