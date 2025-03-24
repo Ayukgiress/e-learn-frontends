@@ -35,7 +35,6 @@ const validationSchema = z.object({
 
 type FormData = z.infer<typeof validationSchema>;
 
-// In useAuthStore.ts
 interface DecodedToken {
   role: string;
   [key: string]: any;
@@ -58,14 +57,25 @@ const Login = () => {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
+      console.log('Submitting login form with:', { email: data.email });
+      
       mutate(data, {
         onSuccess: async (response) => {
+          console.log('Login success response:', response);
+          
           if (response.token) {
-            await login(response.token);
-            const user = useAuthStore.getState().user;
-            
-            if (user?.role) {
-              const role = user.role.toLowerCase();
+            try {
+              const decoded = jwtDecode<DecodedToken>(response.token);
+              console.log('Full decoded token payload:', decoded);
+              
+              // Store the token and decoded info in auth store
+              await login(response.token);
+              
+              // Get role directly from token
+              const role = decoded.role?.toLowerCase() || 'guest';
+              console.log('User role from token:', role);
+              
+              // Redirect based on role
               switch (role) {
                 case "admin":
                   router.push(PROTECTED_ROUTES.MANAGEMENT);
@@ -79,21 +89,30 @@ const Login = () => {
                 default:
                   router.push("/dashboard");
               }
+              
               toast.success("Login successful");
+            } catch (decodeError) {
+              console.error('Token decode error:', decodeError);
+              toast.error("Invalid authentication token received");
             }
+          } else {
+            console.error('No token in response:', response);
+            toast.error("Login failed: No authentication token received");
           }
         },
-        onError: (error) => {
-          toast.error(error.message || "Login failed. Please try again.");
+        onError: (error: any) => {
+          console.error('Login error details:', error);
+          const errorMessage = error?.message || "Login failed. Please try again.";
+          toast.error(errorMessage);
         },
       });
     } catch (err) {
+      console.error('Unexpected error during login:', err);
       toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-500 to-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

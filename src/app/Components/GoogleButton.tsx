@@ -1,50 +1,37 @@
 "use client";
+import { API_BASE_URL } from '@/app/constant/route';
 
 import React from 'react';
 import { FcGoogle } from 'react-icons/fc';
+import { toast } from 'sonner';
 
 interface GoogleLoginButtonProps {
   className?: string;
 }
 
 export const GoogleLoginButton = ({ className = '' }: GoogleLoginButtonProps) => {
-  // Function to redirect to the backend auth endpoint
   const handleGoogleLogin = () => {
-    // Use environment variable or default to localhost
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
-    
-    // Make sure the URL is constructed properly
-    const authUrl = `${apiBaseUrl}/auth/google`;
-    
-    console.log('Redirecting to Google auth:', authUrl);
-    window.location.href = authUrl;
+    try {
+      const apiBaseUrl = API_BASE_URL      
+      const authUrl = `${apiBaseUrl}/auth/google`;
+      
+      console.log('Redirecting to Google auth:', authUrl);
+      
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Google login error:', error);
+      toast.error('Failed to connect to authentication service');
+    }
   };
 
   return (
     <button
       onClick={handleGoogleLogin}
-      className={`flex items-center justify-center w-full min-h-[40px] bg-white text-gray-800 font-semibold rounded shadow hover:bg-gray-200 transition duration-200 ${className}`}
+      type="button"
+      className={`flex items-center justify-center w-full py-3 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ${className}`}
     >
       <FcGoogle size={20} />
-      <span className="ml-2">Sign in with Google</span>
+      <span className="ml-2 font-medium">Continue with Google</span>
     </button>
   );
 };
-
-// The useGoogleLogin hook looks good as is
-export function useGoogleLogin() {
-  const processAuthToken = () => {
-    // Get token from URL if present
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    
-    if (token) {
-      // Store token in localStorage
-      localStorage.setItem('auth_token', token);
-      return true;
-    }
-    return false;
-  };
-  
-  return { processAuthToken };
-}

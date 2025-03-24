@@ -6,7 +6,6 @@ import { API_BASE_URL } from "../constant/route";
 import exp from "constants";
 import { toast } from "sonner";
 
-// Validation schema
 const validationSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -44,7 +43,6 @@ export function useRegisterUser() {
       return await response.json();
     },
     onSuccess: () => {
-      // Invalidate relevant queries if needed
       queryClient.invalidateQueries({ queryKey: ["user"] });
     },
   });
