@@ -11,6 +11,7 @@ interface UserData {
   createdAt: string;
   updatedAt: string;
   exp?: number; 
+  userId: string; // Added userId property
 }
 
 interface AuthStore {
@@ -35,7 +36,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     try {
       console.log("Token received:", token);
       const decoded = jwtDecode<UserData>(token);
-      console.log("Decoded token:", decoded);
+      console.log("Full decoded token:", decoded);
       
       if (typeof window !== "undefined") {
         localStorage.setItem("token", token);
@@ -44,7 +45,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const currentState = get();
       const currentUser: UserData = currentState.user || {} as UserData;
       
+      // Extract role from token directly
       const normalizedRole = decoded.role?.toLowerCase() || currentUser.role?.toLowerCase() || "guest";
+      console.log("Normalized role:", normalizedRole);
       
       const updatedUser = {
         ...currentUser, 

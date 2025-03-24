@@ -54,44 +54,65 @@ const Login = () => {
     resolver: zodResolver(validationSchema),
   });
 
- const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
+      console.log('Submitting login form with:', { email: data.email });
+      
       mutate(data, {
         onSuccess: async (response) => {
+          console.log('Login success response:', response);
+          
           if (response.token) {
-            const decoded = jwtDecode<DecodedToken>(response.token);
-            const role = decoded.role?.toLowerCase() || 'guest';
-            
-            await login(response.token);
-            
-            switch (role) {
-              case "admin":
-                router.push(PROTECTED_ROUTES.MANAGEMENT);
-                break;
-              case "instructor":
-                router.push(PROTECTED_ROUTES.INSTRUCTOR);
-                break;
-              case "student":
-                router.push(PROTECTED_ROUTES.STUDENT);
-                break;
-              default:
-                router.push("/dashboard");
+            try {
+              const decoded = jwtDecode<DecodedToken>(response.token);
+              console.log('Full decoded token payload:', decoded);
+              
+              // Store the token and decoded info in auth store
+              await login(response.token);
+              
+              // Get role directly from token
+              const role = decoded.role?.toLowerCase() || 'guest';
+              console.log('User role from token:', role);
+              
+              // Redirect based on role
+              switch (role) {
+                case "admin":
+                  router.push(PROTECTED_ROUTES.MANAGEMENT);
+                  break;
+                case "instructor":
+                  router.push(PROTECTED_ROUTES.INSTRUCTOR);
+                  break;
+                case "student":
+                  router.push(PROTECTED_ROUTES.STUDENT);
+                  break;
+                default:
+                  router.push("/dashboard");
+              }
+              
+              toast.success("Login successful");
+            } catch (decodeError) {
+              console.error('Token decode error:', decodeError);
+              toast.error("Invalid authentication token received");
             }
-            toast.success("Login successful");
+          } else {
+            console.error('No token in response:', response);
+            toast.error("Login failed: No authentication token received");
           }
         },
-        onError: (error) => {
-          toast.error(error.message || "Login failed. Please try again.");
+        onError: (error: any) => {
+          console.error('Login error details:', error);
+          const errorMessage = error?.message || "Login failed. Please try again.";
+          toast.error(errorMessage);
         },
       });
     } catch (err) {
+      console.error('Unexpected error during login:', err);
       toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-500 to-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

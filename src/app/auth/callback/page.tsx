@@ -22,8 +22,6 @@ interface DecodedToken {
 export default function AuthCallback() {
   const [status, setStatus] = useState("Processing authentication...");
   const [error, setError] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [decodedToken, setDecodedToken] = useState<DecodedToken | null>(null);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
@@ -34,18 +32,10 @@ export default function AuthCallback() {
       try {
         console.log("Starting auth callback processing");
 
-        // Get params from URL
         const urlParams = new URLSearchParams(window.location.search);
         const tokenFromUrl = urlParams.get("token");
-
-        // Check if this is a new user that needs role selection
-        // This comes from our server's redirect
         const needsRoleParam = urlParams.get("needsRole");
-        const needsRole = needsRoleParam === "true";
-
-        console.log("Token exists:", !!tokenFromUrl);
-        console.log("Needs role selection from URL param:", needsRole);
-
+        
         if (!tokenFromUrl) {
           setError("No authentication token found");
           setTimeout(() => router.push("/login?error=no-token"), 2000);
@@ -54,64 +44,26 @@ export default function AuthCallback() {
 
         try {
           const decoded = jwtDecode(tokenFromUrl) as DecodedToken;
-
-          if (!decoded) throw new Error("Invalid token");
-
           console.log("Decoded token:", decoded);
-          console.log("Token has role:", decoded.role);
-
-          setToken(tokenFromUrl);
-          setDecodedToken(decoded);
-
-          // First check: did our server indicate this is a new user?
+          
+          const needsRole = needsRoleParam === "true";
+          
           if (needsRole) {
-            console.log("Server indicated role selection needed");
+            console.log("Role selection needed");
             setStatus("Please select your role to continue.");
             setShowRoleModal(true);
             return;
           }
-
-          // Second check: does the token have a role?
-          const hasValidRole =
-            decoded.role &&
-            ["admin", "instructor", "student"].includes(
-              decoded.role.toLowerCase()
-            );
-
-          // Always allow for role selection on first Google login
-          // Need to track if this specific user has completed the process before
-          const userHasSelectedRole = localStorage.getItem(
-            `roleSelected_${decoded.id}`
-          );
-          const isGoogleFirstLogin =
-            !userHasSelectedRole &&
-            decoded.email &&
-            decoded.email.includes("@");
-
-          console.log("Has valid role:", hasValidRole);
-          console.log("User has selected role before:", !!userHasSelectedRole);
-          console.log("Is first Google login:", isGoogleFirstLogin);
-
-          if (hasValidRole && !isGoogleFirstLogin) {
-            // User has a valid role and this isn't first login, proceed
-            console.log("User has valid role in token, proceeding to login");
-            await login(tokenFromUrl);
-            setStatus("Welcome back! Redirecting...");
-
-            // Mark as having selected role
-            if (decoded.id) {
-              localStorage.setItem(`roleSelected_${decoded.id}`, "true");
-            }
-
-            redirectBasedOnRole((decoded.role ?? "").toLowerCase());
-          } else {
-            // No valid role or first login, show selector
-            console.log(
-              "Showing role selector due to first login or missing role"
-            );
-            setStatus("Please select your role to continue.");
-            setShowRoleModal(true);
+          
+          await login(tokenFromUrl);
+          setStatus("Authentication successful! Redirecting...");
+          
+          if (decoded.id) {
+            localStorage.setItem(`roleSelected_${decoded.id}`, "true");
           }
+          
+          redirectBasedOnRole(decoded.role?.toLowerCase() || "");
+          
         } catch (decodeError) {
           console.error("Token decode error:", decodeError);
           setError("Invalid authentication token");
@@ -147,13 +99,17 @@ export default function AuthCallback() {
   };
 
   const handleRoleSelection = async (selectedRole: string) => {
-    if (!token || !decodedToken) return;
-
     setIsProcessing(true);
 
     try {
-      const apiBaseUrl = API_BASE_URL;
-      const response = await fetch(`${apiBaseUrl}/auth/update-role`, {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get("token");
+      
+      if (!token) {
+        throw new Error("No token available");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/auth/update-role`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -166,17 +122,17 @@ export default function AuthCallback() {
         throw new Error("Failed to update role");
       }
 
-      // Get updated token with role
       const data = await response.json();
+      
       const updatedToken = data.token || token;
-
-      // Store that this user has selected a role
-      if (decodedToken.id) {
-        localStorage.setItem(`roleSelected_${decodedToken.id}`, "true");
-      }
-
-      // Login with the updated token
+      
       await login(updatedToken);
+      
+      const decoded = jwtDecode(updatedToken) as DecodedToken;
+      
+      if (decoded.id) {
+        localStorage.setItem(`roleSelected_${decoded.id}`, "true");
+      }
 
       setStatus("Role updated successfully! Redirecting...");
       redirectBasedOnRole(selectedRole);
