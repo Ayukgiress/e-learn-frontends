@@ -184,7 +184,7 @@ const Registration = () => {
                     type="text"
                     {...register("firstName")}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Ayuk"
+                    placeholder="Name"
                   />
                   {errors.firstName && (
                     <span className="text-red-500 text-sm">
@@ -206,7 +206,7 @@ const Registration = () => {
                     type="text"
                     {...register("lastName")}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Giress"
+                    placeholder="SurName"
                   />
                   {errors.lastName && (
                     <span className="text-red-500 text-sm">

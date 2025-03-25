@@ -366,7 +366,7 @@ export default function Home() {
 
               <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
                 <Link
-                  href="/auth"
+                  href="/auths"
                   className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
                 >
                   Explore Courses

@@ -58,7 +58,7 @@ const InstructorDashboard: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<'courses' | 'analytics' | 'profile'>('courses');
   const [uploadProgress, setUploadProgress] = useState<number>(0);
 
-  const API_URL = 'http://localhost:5000'; // Replace with your backend URL
+  const API_URL = 'http://localhost:5000'; 
 
   const fetchCourses = async () => {
     try {
