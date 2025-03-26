@@ -1,6 +1,7 @@
 "use client";
 import { create } from "zustand";
 import { jwtDecode } from "jwt-decode";
+import { toast } from "sonner";
 
 interface UserData {
   id: string;
@@ -11,7 +12,8 @@ interface UserData {
   createdAt: string;
   updatedAt: string;
   exp?: number; 
-  userId: string; // Added userId property
+  userId: string; 
+  profilePicture?: string;
 }
 
 interface AuthStore {
@@ -23,6 +25,7 @@ interface AuthStore {
   login: (token: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => void;
+  updateUser: (userData: Partial<UserData>) => void;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -34,9 +37,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   
   login: async (token: string) => {
     try {
-      console.log("Token received:", token);
       const decoded = jwtDecode<UserData>(token);
-      console.log("Full decoded token:", decoded);
       
       if (typeof window !== "undefined") {
         localStorage.setItem("token", token);
@@ -45,9 +46,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const currentState = get();
       const currentUser: UserData = currentState.user || {} as UserData;
       
-      // Extract role from token directly
       const normalizedRole = decoded.role?.toLowerCase() || currentUser.role?.toLowerCase() || "guest";
-      console.log("Normalized role:", normalizedRole);
       
       const updatedUser = {
         ...currentUser, 
@@ -59,6 +58,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         updatedAt: decoded.updatedAt || currentUser.updatedAt,
         role: normalizedRole, 
         exp: decoded.exp,
+        profilePicture: decoded.profilePicture || currentUser.profilePicture,
+        userId: decoded.userId || currentUser.userId
       };
       
       set({
@@ -69,7 +70,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         isLoading: false,
       });
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Login error:", error);
+      toast.error("Failed to login");
       set({ isLoading: false });
       throw error;
     }
@@ -101,47 +103,42 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           
           if (decoded.exp && decoded.exp < currentTime) {
             console.log("Token expired");
-            set({
-              user: null,
-              isAdmin: false,
-              isStudent: false,
-              isInstructor: false,
-              isLoading: false,
-            });
-          } else {
-            console.log("Token valid");
-            const normalizedRole = decoded.role?.toLowerCase() || "guest"; 
-            set({
-              user: {
-                ...decoded,
-                role: normalizedRole
-              },
-              isAdmin: normalizedRole === "admin",
-              isStudent: normalizedRole === "student",
-              isInstructor: normalizedRole === "instructor",
-              isLoading: false,
-            });
+            get().logout();
+            return;
           }
-        } catch (error) {
-          console.error("Invalid token:", error);
+          
+          const normalizedRole = decoded.role?.toLowerCase() || "guest"; 
           set({
-            user: null,
-            isAdmin: false,
-            isStudent: false,
-            isInstructor: false,
+            user: {
+              ...decoded,
+              role: normalizedRole,
+              profilePicture: decoded.profilePicture
+            },
+            isAdmin: normalizedRole === "admin",
+            isStudent: normalizedRole === "student",
+            isInstructor: normalizedRole === "instructor",
             isLoading: false,
           });
+        } catch (error) {
+          console.error("Auth check error:", error);
+          get().logout();
         }
       } else {
-        console.log("No token found");
-        set({
-          user: null,
-          isAdmin: false,
-          isStudent: false,
-          isInstructor: false,
-          isLoading: false,
-        });
+        get().logout();
       }
     }
   },
+  
+  updateUser: (userData) => {
+    set((state) => ({
+      user: state.user ? {
+        ...state.user,
+        ...userData,
+        firstName: userData.firstName || state.user.firstName,
+        lastName: userData.lastName || state.user.lastName,
+        email: userData.email || state.user.email,
+        profilePicture: userData.profilePicture || state.user.profilePicture
+      } : null
+    }));
+  }
 }));

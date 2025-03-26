@@ -29,11 +29,9 @@ const RoleGuard: React.FC<RoleGuardProps> = ({ role, children }) => {
       console.log("Expected role:", role);
       console.log("Current role:", user?.role);
 
-      // If we don't have a user or role doesn't match, try to fetch from backend
       if (!user || !user.role) {
         const token = localStorage.getItem("token");
         if (token) {
-          // Fetch current user data from backend
           fetch(`${API_BASE_URL}/auth/me`, {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -41,7 +39,6 @@ const RoleGuard: React.FC<RoleGuardProps> = ({ role, children }) => {
           })
             .then((response) => response.json())
             .then((userData) => {
-              // Normalize role to lowercase
               const normalizedRole = userData.role?.toLowerCase() || "guest";
 
               useAuthStore.setState({

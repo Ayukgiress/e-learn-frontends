@@ -1,10 +1,12 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaEdit, FaTrash, FaPlus, FaUpload, FaBook, FaUserCircle, FaSignOutAlt, FaChartBar, FaFile, FaDownload, FaTimes } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaUpload, FaBook, FaUserCircle, FaSignOutAlt, FaChartBar, FaFile, FaDownload, FaTimes, FaHome } from 'react-icons/fa';
 import { Charts } from '@/app/Components/chart';
 import UserProfile from '@/app/Components/userProfile';
 import { Link } from 'lucide-react';
+import LogoutButton from '@/app/Components/logoutButton';
+import { toast } from 'sonner';
 
 interface Attachment {
   _id: string;
@@ -172,29 +174,35 @@ const InstructorDashboard: React.FC = () => {
     try {
       const formDataToSend = new FormData();
       
-      // Add all form fields
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formDataToSend.append(key, value.toString());
-        }
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('level', formData.level);
+      formDataToSend.append('price', formData.price.toString());
+      formDataToSend.append('instructor', formData.instructor);
+
+      files.forEach((file) => {
+        formDataToSend.append('attachments', file);
       });
       
-      // Add course image if exists
       if (courseImage) {
         formDataToSend.append('courseImage', courseImage);
       }
       
-      // Add all attachment files
-      files.forEach(file => {
+      files.forEach((file) => {
         formDataToSend.append('attachments', file);
       });
       
       const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
         onUploadProgress: (progressEvent: any) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           setUploadProgress(percentCompleted);
         }
       };
+      toast.success('Course created successfully');
       
       let response;
       if (editingCourse) {
@@ -218,10 +226,11 @@ const InstructorDashboard: React.FC = () => {
       );
       
       resetForm();
+      toast.success(`Course ${editingCourse ? 'updated' : 'created'} successfully`);
       
     } catch (err: any) {
-      console.error('Error submitting course:', err);
-      setError(`Failed to ${editingCourse ? 'update' : 'create'} course: ${err.message}`);
+      toast.error(`Failed to ${editingCourse ? 'update' : 'create'} course: ${err.response?.data?.message || err.message}`);
+      setError(`Failed to ${editingCourse ? 'update' : 'create'} course: ${err.response?.data?.message || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -233,8 +242,9 @@ const InstructorDashboard: React.FC = () => {
       try {
         await axios.delete(`${API_URL}/courses/${id}`);
         setCourses(prevCourses => prevCourses.filter(course => course._id !== id));
+        toast.success('Course deleted successfully');
       } catch (err: any) {
-        console.error('Error deleting course:', err);
+        toast.error(`Failed to delete course: ${err.message}`);
         setError(`Failed to delete course: ${err.message}`);
       } finally {
         setLoading(false);
@@ -251,7 +261,8 @@ const InstructorDashboard: React.FC = () => {
           prevCourses.map(course => 
             course._id === courseId ? response.data : course
           )
-        );
+        );      
+
       } catch (err: any) {
         console.error('Error deleting attachment:', err);
         setError(`Failed to delete attachment: ${err.message}`);
@@ -263,54 +274,55 @@ const InstructorDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <aside className="w-64 bg-white shadow-md">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-800">Dashboard</h2>
-          <nav className="mt-4 space-y-2">
+    <aside className="w-64 bg-white shadow-md flex flex-col">
+      <div className="p-6 flex-grow">
+        <h2 className="text-xl font-bold text-gray-800">Dashboard</h2>
+        <nav className="mt-4 space-y-2">
+
+          <button 
+            onClick={() => setCurrentPage('courses')} 
+            className={`w-full flex items-center px-4 py-2 rounded ${
+              currentPage === 'courses' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <FaBook className="mr-3" />
+            Your Courses
+          </button>
           <Link
-                href="/"
-              >
-                Home
-         </Link>  
-            <button 
-              onClick={() => setCurrentPage('courses')} 
-              className={`w-full flex items-center px-4 py-2 rounded ${
-                currentPage === 'courses' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <FaBook className="mr-3" />
-              Your Courses
-            </button>
-            <button 
-              onClick={() => setCurrentPage('analytics')} 
-              className={`w-full flex items-center px-4 py-2 rounded ${
-                currentPage === 'analytics' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <FaChartBar className="mr-3" />
-              Analytics
-            </button>
-            <button 
-              onClick={() => setCurrentPage('profile')} 
-              className={`w-full flex items-center px-4 py-2 rounded ${
-                currentPage === 'profile' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <FaUserCircle className="mr-3" />
-              Profile
-            </button>
-          </nav>
-        </div>
-        <div className="flex items-center justify-between p-4 bg-gray-100 border-t">
-          <div className="flex items-center">
-            <FaUserCircle className="text-2xl text-gray-600 mr-2" />
-            <span className="text-gray-800">Instructor Dashboard</span>
-          </div>
+  href="/" 
+  className="w-full flex items-center px-4 py-2 rounded text-gray-600 hover:bg-gray-100 text-base font-medium"
+>
+  <FaHome className="mr-3 text-xl" />
+  <span className="text-base">Home</span>
+</Link>
+          <button 
+            onClick={() => setCurrentPage('analytics')} 
+            className={`w-full flex items-center px-4 py-2 rounded ${
+              currentPage === 'analytics' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <FaChartBar className="mr-3" />
+            Analytics
+          </button>
+          <button 
+            onClick={() => setCurrentPage('profile')} 
+            className={`w-full flex items-center px-4 py-2 rounded ${
+              currentPage === 'profile' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <FaUserCircle className="mr-3" />
+            Profile
+          </button>
+        </nav>
+      </div>
+      <div className="p-4 bg-gray-100 border-t mt-auto">
+        <div className="flex items-start justify-start flex-start">
+          <LogoutButton />
           <button onClick={() => console.log('Logout')} className="text-red-600 hover:bg-red-50 p-2 rounded-full">
-            <FaSignOutAlt />
           </button>
         </div>
-      </aside>
+      </div>
+    </aside>
 
       <main className="flex-1 p-6">
         {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">{error}</div>}
