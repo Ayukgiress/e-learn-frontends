@@ -30,7 +30,6 @@ const validationSchema = z.object({
     .string()
     .min(6, "Password must be at least 6 characters long")
     .min(1, "Password is required"),
-  rememberMe: z.boolean().optional(),
 });
 
 type FormData = z.infer<typeof validationSchema>;
@@ -57,24 +56,24 @@ const Login = () => {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-      console.log('Submitting login form with:', { email: data.email });
-      
+      console.log("Submitting login form with:", { email: data.email });
+
       mutate(data, {
         onSuccess: async (response) => {
-          console.log('Login success response:', response);
-          
+          console.log("Login success response:", response);
+
           if (response.token) {
             try {
               const decoded = jwtDecode<DecodedToken>(response.token);
-              console.log('Full decoded token payload:', decoded);
-              
+              console.log("Full decoded token payload:", decoded);
+
               // Store the token and decoded info in auth store
               await login(response.token);
-              
+
               // Get role directly from token
-              const role = decoded.role?.toLowerCase() || 'guest';
-              console.log('User role from token:', role);
-              
+              const role = decoded.role?.toLowerCase() || "guest";
+              console.log("User role from token:", role);
+
               // Redirect based on role
               switch (role) {
                 case "admin":
@@ -89,25 +88,26 @@ const Login = () => {
                 default:
                   router.push("/dashboard");
               }
-              
+
               toast.success("Login successful");
             } catch (decodeError) {
-              console.error('Token decode error:', decodeError);
+              console.error("Token decode error:", decodeError);
               toast.error("Invalid authentication token received");
             }
           } else {
-            console.error('No token in response:', response);
+            console.error("No token in response:", response);
             toast.error("Login failed: No authentication token received");
           }
         },
         onError: (error: any) => {
-          console.error('Login error details:', error);
-          const errorMessage = error?.message || "Login failed. Please try again.";
+          console.error("Login error details:", error);
+          const errorMessage =
+            error?.message || "Login failed. Please try again.";
           toast.error(errorMessage);
         },
       });
     } catch (err) {
-      console.error('Unexpected error during login:', err);
+      console.error("Unexpected error during login:", err);
       toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);
@@ -198,7 +198,6 @@ const Login = () => {
                   <input
                     id="rememberMe"
                     type="checkbox"
-                    {...register("rememberMe")}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <label
